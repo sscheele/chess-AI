@@ -55,12 +55,12 @@ namespace Chess
 			ulong[] enemyBoard = new ulong[64];
 			Array.Copy(c.getDict(isWhite), myBoard, 64);
 			Array.Copy(c.getDict(!isWhite), enemyBoard, 64);
-			return getAIMove(myBoard, enemyBoard, 0, searchDepth, 0, null);
+			return getAIMove(myBoard, enemyBoard, 0, searchDepth, 0);
 		}
 		
 		
 		//args are for purposes of searchAIMove - see below
-		public int[] getAIMove(ulong[] myBoard, ulong[] enemyBoard, int movesSearched, int ply, int currValue, int[] rootMove){
+		public int[] getAIMove(ulong[] myBoard, ulong[] enemyBoard, int movesSearched, int ply, int currValue){
 			var maxPointVal = Int32.MinValue;
 			var minMoveVal = Int32.MaxValue;
 			ulong[] white = isWhite ? myBoard : enemyBoard;
@@ -71,8 +71,8 @@ namespace Chess
 					ulong validMoves = c.getValidMoves(isWhite, index, enemyBoard[pieceIndex.ALL_LOCATIONS], true, white, black, false);
 					for (int to = 0; to < 64; to++){
 						if (trueAtIndex(validMoves, to)){
-							int[] currMove = new int[]{index, to};
-							int val = searchAIMove(myBoard, enemyBoard, movesSearched, ply, currValue, rootMove);
+							int[] currMove = {index, to};
+							int val = searchAIMove(myBoard, enemyBoard, movesSearched, ply, currValue, currMove);
 							if (val > maxPointVal){ //this is the "greediest" move, so update best move
 								maxPointVal = val;
 								minMoveVal = movesSearched;
@@ -88,7 +88,7 @@ namespace Chess
 					}
 				}
 			}
-			return new int[]{-1, -1};
+			return currBestMove;
 		}
 		
 		//myBoard - board we're assuming is current board - may differ from actual board, since method is recursive
@@ -105,27 +105,30 @@ namespace Chess
 					ulong[] enemyTBoard = null;
 					Array.Copy(myBoard, myTBoard, myBoard.Length);
 					Array.Copy(enemyBoard, enemyTBoard, enemyBoard.Length);
+					ulong[][] newboards;
 					if (movesSearched % 2 == 0 ^ isTheoretical){ //means we're searching our move. XOR by theoretical means that we search even moves and our opponent searches odd
-						if (movesSearched == 0){
-							ulong[][] newboards;
-							if (rootMove != null){
-								newboards = movePiece(myTBoard, enemyTBoard, rootMove[0], rootMove[1]);
-							} else {
-								int[] move = getAIMove(myTBoard, enemyTBoard, movesSearched + 1, ply, currValue, rootMove);
+						//if (movesSearched == 0){
+						if (rootMove != null){
+							newboards = movePiece(myTBoard, enemyTBoard, rootMove[0], rootMove[1]);
+							/*} else {
+								int[] move = getAIMove(myTBoard, enemyTBoard, movesSearched + 1, ply, currValue, null);
 								newboards = movePiece(myTBoard, enemyTBoard, move[0], move[1]);
 							}
 							myTBoard = newboards[0]; //make the root move
 							enemyTBoard = newboards[1];
-							movesSearched++;
+							movesSearched++;*/
 						} else {
-							int[] bestMoves = this.getAIMove(myBoard, enemyBoard, movesSearched, ply, currValue, rootMove);
-							
+							int[] bestMove = this.getAIMove(myBoard, enemyBoard, movesSearched + 1, ply, currValue);
+							newboards = movePiece(myTBoard, enemyTBoard, bestMove[0], bestMove[1]);
+							retVal += rawMoveValue(bestMove[1], enemyBoard);
 						}
+					} else {
+						int[] bestMove = parent_child.getAIMove(enemyBoard, myBoard, movesSearched + 1, ply, currValue);
+						newboards = movePiece(enemyTBoard, myTBoard, bestMove[0], bestMove[1]);
+						retVal -= rawMoveValue(bestMove[1], myBoard);
 					}
-					return searchAIMove(myTBoard);
-			} else {
-				return currValue;
-			}
+					return searchAIMove(newboards[0], newboards[1], movesSearched + 1, ply, retVal, null);
+			} 
 			return currValue;
 		}
 		
@@ -139,30 +142,6 @@ namespace Chess
 				return pieceVals.KING;
 			}
 			return 0;
-		}
-		
-		int getValueAt(ulong[] board, int index){
-			if (trueAtIndex(board[pieceIndex.ALL_LOCATIONS], index)){
-				for (int p = 0; p <= pieceIndex.KING; p++){
-					if (trueAtIndex(board[p], index)){
-						switch (p){
-							case pieceIndex.PAWN:
-								return pieceVals.PAWN;
-							case pieceIndex.ROOK:
-								return pieceVals.ROOK;
-							case pieceIndex.KNIGHT:
-								return pieceVals.KNIGHT;
-							case pieceIndex.BISHOP:
-								return pieceVals.BISHOP;
-							case pieceIndex.QUEEN:
-								return pieceVals.QUEEN;
-							case pieceIndex.KING:
-								return pieceVals.KING;							
-						}
-					}
-				}
-			}
-			return -666;
 		}
 		
 		ulong[][] movePiece(ulong[] dict, ulong[] enemyDict, int begin, int end){

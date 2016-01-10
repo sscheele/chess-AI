@@ -46,8 +46,8 @@ namespace Chess
 			black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
 			white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
             //set flags used for castling
-            white[pieceIndex.FLAGS] = Convert.ToUInt64("11", 2);
-            black[pieceIndex.FLAGS] = Convert.ToUInt64("11", 2);
+            white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
+            black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
 				
 			genOverlay();
 			getAllLocations(true);
@@ -77,18 +77,37 @@ namespace Chess
 							if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
 						}
 					}
-				}
-			}
+                    //if king or rook moving, invalidate castle
+                    if (i == pieceIndex.KING && (dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.LEFT_ROOK_CASTLE;
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
+
+                    //if castling, move rook to other side of king
+                    if (i == pieceIndex.KING)
+                    {
+                        int rookIndex = isWhite ? 56 : 0;
+                        int dir = begin < end ? 1 : -1;
+                        if (dir == 1) rookIndex += 7;
+                        if ((end - begin) * dir == 2) //king is castling
+                        {
+                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], rookIndex, false);
+                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], begin + dir, true);
+                        }
+                    }
+                }
+            }
 		}
 		
 		public void genOverlay(){
-			string path = @"D:\Programs and Programming\Programming\C#\Images\";
-			for (int s = 0; s <= pieceIndex.KING; s++){
+            for (int i = 0; i < 64; i++){
+                frm.setOverlay(i, 15);
+            }
+            for (int s = 0; s <= pieceIndex.KING; s++){
 				ulong blackArr = black[s];
 				ulong whiteArr = white[s];
 				for (int i = 0; i < 64; i++){
-					if (trueAtIndex(whiteArr, i)) frm.setOverlay(i, Image.FromFile(path + s + ".png"));
-					if (trueAtIndex(blackArr, i)) frm.setOverlay(i, Image.FromFile(path + "B" + s + ".png"));
+					if (trueAtIndex(whiteArr, i)) frm.setOverlay(i, s);
+					if (trueAtIndex(blackArr, i)) frm.setOverlay(i, s + 6);
 				}
 			}
 		}
@@ -122,7 +141,8 @@ namespace Chess
 							int moveIndex = index + (direction * 8);
 							//move one in dir
 							if (moveIndex >= 0 && moveIndex <= 63 && 
-							    !checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq)) retVal = setAtIndex(retVal, moveIndex, true);
+							    !checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) &&
+                                !fromAttackedSq) retVal = setAtIndex(retVal, moveIndex, true);
 							
 							//captures
 							if (moveIndex - 1 >= 0 && moveIndex - 1 <= 63 && //in bounds
@@ -135,7 +155,7 @@ namespace Chess
 							//move two in dir
 							if (index / 8 == pawnFile){
 								moveIndex += direction * 8;
-								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq)) retVal = setAtIndex(retVal, moveIndex, true);
+								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) && !fromAttackedSq) retVal = setAtIndex(retVal, moveIndex, true);
 							}
 							break;
 							
@@ -143,12 +163,12 @@ namespace Chess
 							for (int dir = -1; dir < 2; dir += 2){
 								for (int ext = 1; ext <= 8; ext++){
 									int testInd = index + (dir * ext);
-									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8) break;
+									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8 || testInd < 0 || testInd > 63) break;
 									retVal = setAtIndex(retVal, testInd, true);
 								}
 								for (int ext = 0; ext < 8; ext++) {
 									int testInd = index + (8 * dir * ext);
-									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8) break;
+									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8 || testInd < 0 || testInd > 63) break;
 									retVal = setAtIndex(retVal, testInd, true);
 								}
 							}
@@ -174,18 +194,20 @@ namespace Chess
 							}
 							break;
 						case pieceIndex.QUEEN:
+                            //move like a rook
 							for (int dir = -1; dir < 2; dir += 2){
 								for (int ext = 1; ext <= 8; ext++){
 									int testInd = index + (dir * ext);
-									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8) break;
+									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8 || testInd < 0 || testInd > 63) break;
 									retVal = setAtIndex(retVal, testInd, true);
 								}
 								for (int ext = 0; ext < 8; ext++) {
 									int testInd = index + (8 * dir * ext);
-									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8) break;
+									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8 || testInd < 0 || testInd > 63) break;
 									retVal = setAtIndex(retVal, testInd, true);
 								}
 							}
+                            //move like a bishop
 							diffs = new int[]{-7, 7, -9, 9};
 							foreach (int diff in diffs){
 								int prevTemp = index;
@@ -200,12 +222,23 @@ namespace Chess
 							break;
 						case pieceIndex.KING:
 							isKingMove = true;
+                            int currRow = index / 8;
 							for (int a = -1; a <= 1; a++){
 								for (int c = -1; c <= 1; c++){
 									int newIndex = index + (8 * a) + c;
 									if (newIndex >= 0 && newIndex <= 63 && !trueAtIndex(newAllPos, newIndex)) retVal = setAtIndex(retVal, newIndex, true);
 								}
 							}
+                            if ((dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) //king can castle
+                            {
+                                if((dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0 &&
+                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index - 1) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index - 1) &&
+                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index - 2) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index - 2)) retVal = setAtIndex(retVal, index + 2, true); //king can castle right
+
+                                if ((dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0 && 
+                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index + 1) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + 1) &&
+                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index + 2) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + 2)) retVal = setAtIndex(retVal, index + 2, true); //king can castle right
+                            }
 							break;
 					}
 					retVal = setAtIndex(retVal, index, false);
@@ -247,7 +280,7 @@ namespace Chess
 			return retVal;
 		}		               
 		
-		//PRE: w and b allow us to specify a different potential boards
+		//PRE: w and b allow us to specify different potential boards
 		//POST: gives squares attacked by isWhite given either current or specified configuration
 		public ulong getAttackedSquares(bool isWhite, ulong[] w = null, ulong[] b = null){
 			if (w == null || b == null){

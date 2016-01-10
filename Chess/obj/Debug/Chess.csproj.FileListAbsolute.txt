@@ -7,3 +7,12 @@ D:\Programs and Programming\Programming\C#\Chess\obj\Debug\Chess.csproj.Generate
 D:\Programs and Programming\Programming\C#\Chess\obj\Debug\Chess.exe
 D:\Programs and Programming\Programming\C#\Chess\obj\Debug\Chess.pdb
 D:\Programs and Programming\Programming\C#\Chess\obj\Debug\Chess.SelectionForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\bin\Debug\Chess.exe.config
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.exe
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.pdb
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\bin\Debug\Chess.exe
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\bin\Debug\Chess.pdb
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.csprojResolveAssemblyReference.cache
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.MainForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.SelectionForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.csproj.GenerateResource.Cache

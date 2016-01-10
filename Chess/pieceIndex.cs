@@ -19,4 +19,11 @@ namespace Chess
 		public const int VALID_MOVES = 8;
 		public const int FLAGS = 9;
 	}
+
+    public static class flagIndex
+    {
+        public const UInt64 RIGHT_ROOK_CASTLE = 1;
+        public const UInt64 KING_CASTLE = 2;
+        public const UInt64 LEFT_ROOK_CASTLE = 4;
+    }
 }

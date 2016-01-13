@@ -62,7 +62,7 @@ namespace Chess
 		
 		void MainFormResizeEnd(object sender, EventArgs e)
 		{
-			resizeTiles();
+            resizeTiles();
 			paintTiles();
 		}
 		
@@ -92,7 +92,7 @@ namespace Chess
                 int backgroundIndex = baseTiles[i] ? 1 : 0;
                 Image imgBackground = backgrounds[backgroundIndex];
                 if (overlays[i] < pieceOverlays.Length || isValid) {
-                    if (!isValid) imgOverlay = pieceOverlays[overlays[i]];
+                    if (overlays[i] < pieceOverlays.Length) imgOverlay = pieceOverlays[overlays[i]];
                     Image img = new Bitmap(imgBackground.Width, imgBackground.Height);
                     using (Graphics gr = Graphics.FromImage(img)) {
                         gr.DrawImage(imgBackground, new Point(0, 0));
@@ -134,6 +134,7 @@ namespace Chess
 			} else if (trueAtIndex(validMoveOverlays, indexClicked) && selectedPiece != -1){
 				c.movePiece(isWhiteMove, selectedPiece, indexClicked);
 				c.getAllLocations(isWhiteMove);
+                c.getAllLocations(!isWhiteMove);
 				if (c.checkForMate(isWhiteMove)){
 					validMoveOverlays = 0;
 					overlays = new int[64];

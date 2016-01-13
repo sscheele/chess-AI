@@ -11,6 +11,8 @@ namespace Chess
 	public class ChessBoard{
 		ulong[] white;
 		ulong[] black;
+        int black_ep = -1;
+        int white_ep = -1;
 		MainForm frm;
 		int gameMode;
 		
@@ -83,16 +85,32 @@ namespace Chess
                     if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
 
                     //if castling, move rook to other side of king
-                    if (i == pieceIndex.KING)
-                    {
+                    if (i == pieceIndex.KING){
                         int rookIndex = isWhite ? 56 : 0;
                         int dir = begin < end ? 1 : -1;
                         if (dir == 1) rookIndex += 7;
-                        if ((end - begin) * dir == 2) //king is castling
-                        {
+                        if ((end - begin) * dir == 2) { //king is castling
                             dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], rookIndex, false);
                             dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], begin + dir, true);
                         }
+                    }
+                    //add in en passant
+                    if (i == pieceIndex.PAWN){
+                        int dir = begin < end ? 1 : -1;
+                        //set en passant of necessary
+                        if ((dir * (end - begin) / 8) == 2){
+                            if (isWhite) white_ep = begin + dir * 8;
+                            else black_ep = begin + dir * 8;
+                        } else {
+                            if (isWhite) white_ep = -1;
+                            else black_ep = -1;
+                        }
+                        //if capturing en passant, remove enemy pawn
+                        int enemy_ep = isWhite ? black_ep : white_ep;
+                        if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
+                    } else {
+                        if (isWhite) white_ep = -1;
+                        else black_ep = -1;
                     }
                 }
             }
@@ -136,6 +154,7 @@ namespace Chess
 					bool isKingMove = false;
 					switch(s){
 						case pieceIndex.PAWN:
+                            int enemy_ep = isWhite ? black_ep : white_ep;
 							int direction = isWhite ? -1 : 1;
 							int pawnFile = isWhite ? 6 : 1;
 							int moveIndex = index + (direction * 8);
@@ -157,7 +176,10 @@ namespace Chess
 								moveIndex += direction * 8;
 								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) && !fromAttackedSq) retVal = setAtIndex(retVal, moveIndex, true);
 							}
-							break;
+
+                            //en passant captures
+                            if (index + direction * 7 == enemy_ep || index + direction * 9 == enemy_ep) retVal = setAtIndex(retVal, enemy_ep, true);
+                            break;
 							
 						case pieceIndex.ROOK:
 							for (int dir = -1; dir < 2; dir += 2){
@@ -229,7 +251,7 @@ namespace Chess
 									if (newIndex >= 0 && newIndex <= 63 && !trueAtIndex(newAllPos, newIndex)) retVal = setAtIndex(retVal, newIndex, true);
 								}
 							}
-                            if ((dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) //king can castle
+                            if ((dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0 && !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index)) //king can castle
                             {
                                 if((dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0 &&
                                     !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index - 1) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index - 1) &&
@@ -260,21 +282,19 @@ namespace Chess
 			ulong myBoard = 0;
 			
 			getAttackedSquares(!isWhite);
-			
-			if (isKingMove){
-				for (int i = 0; i < 64; i++){
-					if (trueAtIndex(possibleMoves, i) && trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], i)) retVal = setAtIndex(retVal, i, false);
-				}
-				return retVal;
-			}
-			
-			for (int i = 0; i < 64; i++){
+            myBoard = myDict[pieceIndex.ALL_LOCATIONS];
+
+            for (int i = 0; i < 64; i++){
 				if (trueAtIndex(possibleMoves, i)){	//for each valid move, use a test allLocations to see if it's moving into check
-					myBoard = myDict[pieceIndex.ALL_LOCATIONS];
-					myBoard = setAtIndex(myBoard, beginIndex, false);
-					myBoard = setAtIndex(myBoard, i, true);
-					ulong newAttackedSquares = getAttackedSquares(!isWhite, w, b);
-					if ((myDict[pieceIndex.KING] & newAttackedSquares) > 0) retVal = setAtIndex(retVal, i, false);
+                    ulong kingPos = myDict[pieceIndex.KING];
+                    if (isKingMove) kingPos = (ulong)1 << (63 - i);
+					myDict[pieceIndex.ALL_LOCATIONS] = setAtIndex(myDict[pieceIndex.ALL_LOCATIONS], beginIndex, false);
+                    myDict[pieceIndex.ALL_LOCATIONS] = setAtIndex(myDict[pieceIndex.ALL_LOCATIONS], i, true);
+                    ulong newAttackedSquares;
+                    if (isWhite) newAttackedSquares = getAttackedSquares(!isWhite, myDict, b);
+                    else newAttackedSquares = getAttackedSquares(!isWhite, w, myDict);
+                    if ((kingPos & newAttackedSquares) > 0) retVal = setAtIndex(retVal, i, false);
+                    myDict[pieceIndex.ALL_LOCATIONS] = myBoard;
 				}
 			}
 			return retVal;

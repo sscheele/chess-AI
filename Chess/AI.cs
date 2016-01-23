@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Chess
 {
@@ -40,25 +41,78 @@ namespace Chess
 			parent_child = parentAI;
 		}
 		
-		public static ulong setAtIndex(ulong state, int index, bool isTrue){
+		static ulong setAtIndex(ulong state, int index, bool isTrue){
 			if (isTrue) return state | (ulong)(1uL << (63 - index));
 			return state & ~((ulong)(1uL << 63 - index));
 		}
 		
-		public static bool trueAtIndex(ulong t, int i){ //easier to think of the other way
+		static bool trueAtIndex(ulong t, int i){ //easier to think of the other way
 			return (t & (ulong)(1uL << (63 - i))) > 0;
 			//invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
 		}
+
+        ulong[] getPossibleMoves(ChessBoard c)
+        {
+            ulong[] retVal = new ulong[64];
+            ulong[] dict = c.getDict(isWhite);
+            ulong[] enemyDict = c.getDict(!isWhite);
+            for (int i = 0; i < 64; i++)
+            {
+                if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], i))
+                {
+                    retVal[i] = c.getValidMoves(isWhite, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
+                }
+            }
+            return retVal;
+        }
+        
+
+        int[][] alphaBeta(int depth, int alpha, int beta, int[] move, int player)
+        {
+            ulong[] possibleMoves = getPossibleMoves(c);
+            bool hasValidMoves = false;
+            for (int i = 0; i < 64; i++)
+            {
+                if (possibleMoves[i] > 0)
+                {
+                    hasValidMoves = true;
+                    break;
+                }
+            }
+            if (depth == 0 || !hasValidMoves) return new int[][] { move, new int[] { player * boardEval() } };
+            //TODO: sort for alphabeta
+            player = -1 * player;
+            for (int i = 0; i < 64; i++)
+            {
+                if (possibleMoves[i] > 0)
+                {
+                    for (int j = 0; i < 64; j++)
+                    {
+                        if (trueAtIndex(possibleMoves[i], j))
+                        {
+                            ChessBoard tempBoard = new ChessBoard(c);
+                            c.movePiece(player == -1 ^ !isWhite, i, j);
+                            int[][] retVal = alphaBeta(depth - 1, alpha, beta, new int[] { i, j }, player);
+                            c = tempBoard;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
 		
 		public int[] getAIMove(){
-			ulong[] myBoard = new ulong[64];
-			ulong[] enemyBoard = new ulong[64];
-			Array.Copy(c.getDict(isWhite), myBoard, 64);
-			Array.Copy(c.getDict(!isWhite), enemyBoard, 64);
+            /*
+			ulong[] myBoard = new ulong[pieceIndex.FLAGS + 1];
+			ulong[] enemyBoard = new ulong[pieceIndex.FLAGS + 1];
+			Array.Copy(c.getDict(isWhite), myBoard, pieceIndex.FLAGS + 1);
+			Array.Copy(c.getDict(!isWhite), enemyBoard, pieceIndex.FLAGS + 1);
 			return getAIMove(myBoard, enemyBoard, 0, searchDepth, 0);
+            */
+            return null; //temp value to make compile
 		}
 		
-		
+		/*
 		//args are for purposes of searchAIMove - see below
 		public int[] getAIMove(ulong[] myBoard, ulong[] enemyBoard, int movesSearched, int ply, int currValue){
 			var maxPointVal = Int32.MinValue;
@@ -72,6 +126,7 @@ namespace Chess
 					for (int to = 0; to < 64; to++){
 						if (trueAtIndex(validMoves, to)){
 							int[] currMove = {index, to};
+                            Debug.Print("Searching AI moves at depth " + ply + " (current depth: " + movesSearched + ")");
 							int val = searchAIMove(myBoard, enemyBoard, movesSearched, ply, currValue, currMove);
 							if (val > maxPointVal){ //this is the "greediest" move, so update best move
 								maxPointVal = val;
@@ -101,8 +156,8 @@ namespace Chess
 			var blackBoard = isWhite ? enemyBoard : myBoard;
 			int retVal = currValue;
 			if (movesSearched < ply){ //we will recurse
-					ulong[] myTBoard = null;
-					ulong[] enemyTBoard = null;
+					ulong[] myTBoard = new ulong[myBoard.Length];
+					ulong[] enemyTBoard = new ulong[myBoard.Length];
 					Array.Copy(myBoard, myTBoard, myBoard.Length);
 					Array.Copy(enemyBoard, enemyTBoard, enemyBoard.Length);
 					ulong[][] newboards;
@@ -110,6 +165,7 @@ namespace Chess
 						//if (movesSearched == 0){
 						if (rootMove != null){
 							newboards = movePiece(myTBoard, enemyTBoard, rootMove[0], rootMove[1]);
+                            Debug.Print("Making theoretical move: " + rootMove[0] + " to " + rootMove[1]);
 							/*} else {
 								int[] move = getAIMove(myTBoard, enemyTBoard, movesSearched + 1, ply, currValue, null);
 								newboards = movePiece(myTBoard, enemyTBoard, move[0], move[1]);
@@ -117,6 +173,7 @@ namespace Chess
 							myTBoard = newboards[0]; //make the root move
 							enemyTBoard = newboards[1];
 							movesSearched++;*/
+                            /*
 						} else {
 							int[] bestMove = this.getAIMove(myBoard, enemyBoard, movesSearched + 1, ply, currValue);
 							newboards = movePiece(myTBoard, enemyTBoard, bestMove[0], bestMove[1]);
@@ -131,6 +188,12 @@ namespace Chess
 			} 
 			return currValue;
 		}
+        */
+    
+        int boardEval()
+        {
+            return 0; //placeholder
+        }
 		
 		int rawMoveValue(int index, ulong[] board){
 			if(trueAtIndex(board[pieceIndex.ALL_LOCATIONS], index)){
@@ -144,20 +207,75 @@ namespace Chess
 			return 0;
 		}
 		
-		ulong[][] movePiece(ulong[] dict, ulong[] enemyDict, int begin, int end){
-			for (int i = 0; i <= pieceIndex.KING; i++){
-				if (trueAtIndex(dict[i], begin)){
-					dict[i] = setAtIndex(dict[i], begin, false);
-					dict[i] = setAtIndex(dict[i], end, true);
-					if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end)){
-						for (int j = 0; j <= pieceIndex.KING; j++){
-							if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
-						}
-					}
-				}
-			}
-			return new ulong[][]{dict, enemyDict};
-		}
+		ulong[][] movePiece(ChessBoard ctb, ulong[] dict, ulong[] enemyDict, int begin, int end){
+            ChessBoard newBoard = new ChessBoard(ctb);
+            int white_ep = newBoard.getEP(true);
+            int black_ep = newBoard.getEP(false);
+            for (int i = 0; i <= pieceIndex.KING; i++)
+            {
+                if (trueAtIndex(dict[i], begin))
+                {
+                    dict[i] = setAtIndex(dict[i], begin, false);
+                    dict[i] = setAtIndex(dict[i], end, true);
+                    if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end))
+                    {
+                        for (int j = 0; j <= pieceIndex.KING; j++)
+                        {
+                            if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
+                        }
+                    }
+                    //if king or rook moving, invalidate castle
+                    if (i == pieceIndex.KING && (dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.LEFT_ROOK_CASTLE;
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
+
+                    //if castling, move rook to other side of king
+                    if (i == pieceIndex.KING)
+                    {
+                        int rookIndex = isWhite ? 56 : 0;
+                        int dir = begin < end ? 1 : -1;
+                        if (dir == 1) rookIndex += 7;
+                        if ((end - begin) * dir == 2)
+                        { //king is castling
+                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], rookIndex, false);
+                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], begin + dir, true);
+                        }
+                    }
+                    //add in en passant
+                    if (i == pieceIndex.PAWN)
+                    {
+                        int dir = begin < end ? 1 : -1;
+                        //set en passant of necessary
+                        if ((dir * (end - begin) / 8) == 2)
+                        {
+                            if (isWhite) white_ep = begin + dir * 8;
+                            else black_ep = begin + dir * 8;
+                        }
+                        else
+                        {
+                            if (isWhite) white_ep = -1;
+                            else black_ep = -1;
+                        }
+                        //if capturing en passant, remove enemy pawn
+                        int enemy_ep = isWhite ? black_ep : white_ep;
+                        if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
+
+                        //promotion
+                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite))
+                        {
+                            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], i, false);
+                            dict[pieceIndex.QUEEN] = setAtIndex(dict[pieceIndex.QUEEN], i, true);
+                        }
+                    }
+                    else
+                    {
+                        if (isWhite) white_ep = -1;
+                        else black_ep = -1;
+                    }
+                }
+            }
+            return new ulong[][] { dict, enemyDict };
+        }
 	}
 	
 	public static class pieceVals{

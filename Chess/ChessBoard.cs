@@ -4,68 +4,141 @@
  * Time: 12:11 PM
  */
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace Chess
 {
 	public class ChessBoard{
-		ulong[] white;
-		ulong[] black;
+        List<int[]> moveList = new List<int[]>();
+        int moveNum = 0;
+
+		ulong[] white = new ulong[10];
+		ulong[] black = new ulong[10];
         int black_ep = -1;
         int white_ep = -1;
-		MainForm frm;
-		int gameMode;
 		
-		public ChessBoard(MainForm f, int gameMode){
-			this.gameMode = gameMode;
-			white = new ulong[10];
-			black = new ulong[10];
-			frm = f;
-			//pawn
-			ulong temp = Convert.ToUInt64("0000000011111111000000000000000000000000000000000000000000000000", 2);
-			black[pieceIndex.PAWN] = temp;
-			temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000001111111100000000", 2);
-			white[pieceIndex.PAWN] = temp;
-			//rook
-			temp = Convert.ToUInt64("1000000100000000000000000000000000000000000000000000000000000000", 2);
-			black[pieceIndex.ROOK] = temp;
-			temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000010000001", 2);
-			white[pieceIndex.ROOK] = temp;
-			//knight
-			temp = Convert.ToUInt64("0100001000000000000000000000000000000000000000000000000000000000", 2);
-			black[pieceIndex.KNIGHT] = temp;
-			temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000001000010", 2);
-			white[pieceIndex.KNIGHT] = temp;
-			//bishop
-			temp = Convert.ToUInt64("0010010000000000000000000000000000000000000000000000000000000000", 2);
-			black[pieceIndex.BISHOP] = temp;
-			temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000100100", 2);
-			white[pieceIndex.BISHOP] = temp;
-			//queen
-			black[pieceIndex.QUEEN] = Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2);
-			white[pieceIndex.QUEEN] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2);
-			//king
-			black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
-			white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
-            //set flags used for castling
-            white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
-            black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
-				
-			genOverlay();
-			getAllLocations(true);
-			getAllLocations(false);
-			white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
-			black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+		public ChessBoard(ulong[] white, ulong[] black){
+            if (white == null || black == null)
+            {
+                //pawn
+                ulong temp = Convert.ToUInt64("0000000011111111000000000000000000000000000000000000000000000000", 2);
+                this.black[pieceIndex.PAWN] = temp;
+                temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000001111111100000000", 2);
+                this.white[pieceIndex.PAWN] = temp;
+                //rook
+                temp = Convert.ToUInt64("1000000100000000000000000000000000000000000000000000000000000000", 2);
+                this.black[pieceIndex.ROOK] = temp;
+                temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000010000001", 2);
+                this.white[pieceIndex.ROOK] = temp;
+                //knight
+                temp = Convert.ToUInt64("0100001000000000000000000000000000000000000000000000000000000000", 2);
+                this.black[pieceIndex.KNIGHT] = temp;
+                temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000001000010", 2);
+                this.white[pieceIndex.KNIGHT] = temp;
+                //bishop
+                temp = Convert.ToUInt64("0010010000000000000000000000000000000000000000000000000000000000", 2);
+                this.black[pieceIndex.BISHOP] = temp;
+                temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000100100", 2);
+                this.white[pieceIndex.BISHOP] = temp;
+                //queen
+                this.black[pieceIndex.QUEEN] = Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2);
+                this.white[pieceIndex.QUEEN] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2);
+                //king
+                this.black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
+                this.white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
+                //set flags used for castling
+                this.white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
+                this.black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
+
+                getAllLocations(true);
+                getAllLocations(false);
+                this.white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
+                this.black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+            } else
+            {
+                this.white = white;
+                this.black = black;
+            }
 		}
 		
 		public ChessBoard(ChessBoard c){
-			this.white = c.getDict(true);
-			this.black = c.getDict(false);
+            Array.Copy(c.getDict(true), white, white.Length);
+			Array.Copy(c.getDict(false), black, black.Length);
+            white_ep = c.getEP(true);
+            black_ep = c.getEP(false);
+            moveList = new List<int[]>(c.getMoveList());
+            moveNum = c.getMoveNum();
 		}
+
+        public List<int[]> getMoveList(){ return moveList; }
+
+        public int getMoveNum(){ return moveNum; }
+
+        public int getEP(bool isWhite){ return isWhite ? white_ep : black_ep; }
 		
-		public ulong[] getDict(bool isWhite){
-			return isWhite ? white : black;
-		}
+		public ulong[] getDict(bool isWhite){ return isWhite ? white : black; }
+
+        public void resetBoard()
+        {
+            //pawn
+            ulong temp = Convert.ToUInt64("0000000011111111000000000000000000000000000000000000000000000000", 2);
+            this.black[pieceIndex.PAWN] = temp;
+            temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000001111111100000000", 2);
+            this.white[pieceIndex.PAWN] = temp;
+            //rook
+            temp = Convert.ToUInt64("1000000100000000000000000000000000000000000000000000000000000000", 2);
+            this.black[pieceIndex.ROOK] = temp;
+            temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000010000001", 2);
+            this.white[pieceIndex.ROOK] = temp;
+            //knight
+            temp = Convert.ToUInt64("0100001000000000000000000000000000000000000000000000000000000000", 2);
+            this.black[pieceIndex.KNIGHT] = temp;
+            temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000001000010", 2);
+            this.white[pieceIndex.KNIGHT] = temp;
+            //bishop
+            temp = Convert.ToUInt64("0010010000000000000000000000000000000000000000000000000000000000", 2);
+            this.black[pieceIndex.BISHOP] = temp;
+            temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000100100", 2);
+            this.white[pieceIndex.BISHOP] = temp;
+            //queen
+            this.black[pieceIndex.QUEEN] = Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2);
+            this.white[pieceIndex.QUEEN] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2);
+            //king
+            this.black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
+            this.white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
+            //set flags used for castling
+            this.white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
+            this.black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
+
+            getAllLocations(true);
+            getAllLocations(false);
+            this.white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
+            this.black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+
+            moveList = new List<int[]>();
+            moveNum = 0;
+
+            white_ep = -1;
+            black_ep = -1;
+        }
+
+        public void undoMove()
+        {
+            var oldMoveList = new List<int[]>(moveList);
+            resetBoard();
+
+            bool currMove = true;
+            for (int i = 0; i < oldMoveList.Count - 1; i++)
+            {
+                movePiece(currMove, oldMoveList[i][0], oldMoveList[i][1]);
+                currMove = !currMove;
+            }
+            getAllLocations(true);
+            getAllLocations(false);
+            white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
+            black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+        }
 		
 		public void movePiece(bool isWhite, int begin, int end){
 			ulong[] dict = isWhite ? white : black;
@@ -76,7 +149,7 @@ namespace Chess
 					dict[i] = setAtIndex(dict[i], end, true);
 					if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end)){
 						for (int j = 0; j <= pieceIndex.KING; j++){
-							if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
+                            if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
 						}
 					}
                     //if king or rook moving, invalidate castle
@@ -108,27 +181,37 @@ namespace Chess
                         //if capturing en passant, remove enemy pawn
                         int enemy_ep = isWhite ? black_ep : white_ep;
                         if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
+
+                        //promotion
+                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite)) promotePiece(end, isWhite);
                     } else {
                         if (isWhite) white_ep = -1;
                         else black_ep = -1;
                     }
                 }
             }
+            moveList.Add(new int[] { begin, end });
+            moveNum++;
+            getAllLocations(isWhite);
+            dict[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(isWhite);
 		}
-		
-		public void genOverlay(){
-            for (int i = 0; i < 64; i++){
-                frm.setOverlay(i, 15);
-            }
-            for (int s = 0; s <= pieceIndex.KING; s++){
-				ulong blackArr = black[s];
-				ulong whiteArr = white[s];
-				for (int i = 0; i < 64; i++){
-					if (trueAtIndex(whiteArr, i)) frm.setOverlay(i, s);
-					if (trueAtIndex(blackArr, i)) frm.setOverlay(i, s + 6);
-				}
-			}
-		}
+
+        void promotePiece(int index, bool isWhite)
+        {
+            promotionForm pf = new promotionForm(isWhite);
+            pf.ShowDialog();
+            int promotionChoice = pf.result;
+            ulong[] dict = isWhite ? white : black;
+            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], index, false);
+            dict[promotionChoice] = setAtIndex(dict[promotionChoice], index, true);
+        }
+
+        void promotePiece(int index, bool isWhite, int promotionChoice)
+        {
+            ulong[] dict = isWhite ? white : black;
+            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], index, false);
+            dict[promotionChoice] = setAtIndex(dict[promotionChoice], index, true);
+        }
 		
 		public void getAllLocations(bool isWhite){
 			ulong[] dict = isWhite ? white : black;
@@ -138,12 +221,9 @@ namespace Chess
 			}
 		}		
 		
-		public ulong getValidMoves(bool isWhite, int index, ulong enemyAllPos = 0, bool applyCheckLimits = true, ulong[] w = null, ulong[] b = null, bool fromAttackedSq = false){
-			if (w == null || b == null){
-				w = white;
-				b = black;
-			}
-			//return new bool[]{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
+		public ulong getValidMoves(bool isWhite, int index, ulong enemyAllPos = 0, bool applyCheckLimits = true, bool fromAttackedSq = false){
+            ulong[] w = white;
+            ulong[] b = black;
 			if (enemyAllPos == 0) enemyAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
 			ulong retVal = 0;
 			ulong[] dict = isWhite ? w : b;
@@ -199,7 +279,7 @@ namespace Chess
 							int[] diffs = {17, 15, 10, 6, -6, -10, -15, -17};
 							int[] rightRows = {16, 16, 8, 8, -8, -8, -16, -16};
 							for (int i = 0; i < diffs.Length; i++){
-								if ((index + diffs[i]) / 8 == (index + rightRows[i]) / 8 && index + diffs[i] >= 0 && index + diffs[i] <= 63) retVal = setAtIndex(retVal, index + diffs[i], true);
+								if ((index + diffs[i]) / 8 == (index + rightRows[i]) / 8 && index + diffs[i] >= 0 && index + diffs[i] <= 63 && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + diffs[i])) retVal = setAtIndex(retVal, index + diffs[i], true);
 							}
 							break;
 						case pieceIndex.BISHOP:
@@ -271,13 +351,9 @@ namespace Chess
 			return 0;
 		}
 		
-		ulong applyCheck(bool isWhite, int beginIndex, ulong possibleMoves, bool isKingMove, ulong[] w = null, ulong[] b = null){
-			if (w == null || b == null){
-				w = white;
-				b = black;
-			}
-			ulong[] myDict = isWhite ? w : b;
-			ulong[] enemyDict = isWhite ? b : w;
+		ulong applyCheck(bool isWhite, int beginIndex, ulong possibleMoves, bool isKingMove){
+			ulong[] myDict = isWhite ? white : black;
+			ulong[] enemyDict = isWhite ? black : white;
 			ulong retVal = possibleMoves;
 			ulong myBoard = 0;
 			
@@ -288,11 +364,9 @@ namespace Chess
 				if (trueAtIndex(possibleMoves, i)){	//for each valid move, use a test allLocations to see if it's moving into check
                     ulong kingPos = myDict[pieceIndex.KING];
                     if (isKingMove) kingPos = (ulong)1 << (63 - i);
-					myDict[pieceIndex.ALL_LOCATIONS] = setAtIndex(myDict[pieceIndex.ALL_LOCATIONS], beginIndex, false);
-                    myDict[pieceIndex.ALL_LOCATIONS] = setAtIndex(myDict[pieceIndex.ALL_LOCATIONS], i, true);
-                    ulong newAttackedSquares;
-                    if (isWhite) newAttackedSquares = getAttackedSquares(!isWhite, myDict, b);
-                    else newAttackedSquares = getAttackedSquares(!isWhite, w, myDict);
+                    ChessBoard cboard = new ChessBoard(this);
+                    cboard.movePiece(isWhite, beginIndex, i);
+                    ulong newAttackedSquares = cboard.getAttackedSquares(!isWhite);
                     if ((kingPos & newAttackedSquares) > 0) retVal = setAtIndex(retVal, i, false);
                     myDict[pieceIndex.ALL_LOCATIONS] = myBoard;
 				}
@@ -300,26 +374,16 @@ namespace Chess
 			return retVal;
 		}		               
 		
-		//PRE: w and b allow us to specify different potential boards
-		//POST: gives squares attacked by isWhite given either current or specified configuration
-		public ulong getAttackedSquares(bool isWhite, ulong[] w = null, ulong[] b = null){
-			if (w == null || b == null){
-				w = white;
-				b = black;
-			}
-			ulong newAllPos = isWhite ? b[pieceIndex.ALL_LOCATIONS] : w[pieceIndex.ALL_LOCATIONS];
-			bool isTest = true;
-			if (w.Equals(white) && b.Equals(black)) isTest = false;
+		//POST: gives squares attacked by isWhite given the current configuration
+		public ulong getAttackedSquares(bool isWhite){
+			ulong newAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
 			ulong retVal = 0;
-			ulong[] myDict = isWhite ? w : b;
+			ulong[] myDict = isWhite ? white : black;
 			ulong myPcs = myDict[pieceIndex.ALL_LOCATIONS];
 			for (int i = 0; i < 64; i++){
 				if (trueAtIndex(myPcs, i)){
-					retVal |= getValidMoves(isWhite, i, newAllPos, false, w, b, true);
+					retVal |= getValidMoves(isWhite, i, newAllPos, false, true);
 				}
-			}
-			if (!isTest){
-				myDict[pieceIndex.ATTACKED_SQUARES] = retVal;
 			}
 			return retVal;
 		}
@@ -340,10 +404,10 @@ namespace Chess
 					}
 				}
 			} else { //moving diagonally
-				if ((beginIndex - endIndex) % 7 == 0){ //between low-left and up-right
-					return extendCurrPath(beginIndex, endIndex, myPcs, enemyPcs, 7, dir, attackedSq);
-				} else {
+				if ((beginIndex - endIndex) % 9 == 0){ //between low-left and up-right
 					return extendCurrPath(beginIndex, endIndex, myPcs, enemyPcs, 9, dir, attackedSq);
+				} else {
+					return extendCurrPath(beginIndex, endIndex, myPcs, enemyPcs, 7, dir, attackedSq);
 				}
 			}
 			return false;

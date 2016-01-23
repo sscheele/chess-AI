@@ -16,3 +16,5 @@ C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.csprojResolveAsse
 C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.MainForm.resources
 C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.SelectionForm.resources
 C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.csproj.GenerateResource.Cache
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.promotionForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Debug\Chess.Properties.Resources.resources

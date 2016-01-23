@@ -17,13 +17,16 @@ namespace Chess
 	/// </summary>
 	public partial class MainForm : Form
 	{
-        static String imagePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory().ToString()).ToString(), "Images");
+        AI[] gameAIs = new AI[2];
+        static int defaultSearchDepth = 3;
+
+        static string imagePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory().ToString()).ToString(), "Images");
 		PictureBox[] allTiles;
         bool[] baseTiles = new bool[64];
 		int[] overlays = new int[64];
 		ulong validMoveOverlays = 0; //layer containing info as to whether a square should be marked as valid
 		int tileSize;
-		ChessBoard c;
+		ChessBoardDisplay c;
 		bool isWhiteMove;
 		int selectedPiece = -1;
 		int gameMode;
@@ -35,9 +38,9 @@ namespace Chess
         public MainForm(int gameMode)
 		{
 			this.gameMode = gameMode;
-			//
-			// The InitializeComponent() call is required for Windows Forms designer support.
-			//
+            //
+            // The InitializeComponent() call is required for Windows Forms designer support.
+            //
 			InitializeComponent();
 			allTiles = new PictureBox[]{pictureBox1, pictureBox2, pictureBox3, pictureBox4, pictureBox5, pictureBox6, pictureBox7, pictureBox8, pictureBox9, pictureBox10, pictureBox11, pictureBox12, pictureBox13, pictureBox14, pictureBox15, pictureBox16, pictureBox17, pictureBox18, pictureBox19, pictureBox20, pictureBox21, pictureBox22, pictureBox23, pictureBox24, pictureBox25, pictureBox26, pictureBox27, pictureBox28, pictureBox29, pictureBox30, pictureBox31, pictureBox32, pictureBox33, pictureBox34, pictureBox35, pictureBox36, pictureBox37, pictureBox38, pictureBox39, pictureBox40, pictureBox41, pictureBox42, pictureBox43, pictureBox44, pictureBox45, pictureBox46, pictureBox47, pictureBox48, pictureBox49, pictureBox50, pictureBox51, pictureBox52, pictureBox53, pictureBox54, pictureBox55, pictureBox56, pictureBox57, pictureBox58, pictureBox59, pictureBox60, pictureBox61, pictureBox62, pictureBox63, pictureBox64};
 			for(int i = 0; i < allTiles.Length; i++){
@@ -55,10 +58,14 @@ namespace Chess
                 pieceOverlays[i + divide] = Image.FromFile(Path.Combine(imagePath, "B" + i + ".png"));
             }
             pieceOverlays[pieceOverlays.Length - 1] = Image.FromFile(Path.Combine(imagePath, "validMove.png"));
-            c = new ChessBoard(this, gameMode);
-			isWhiteMove = true;
-			paintTiles();
-		}
+            c = new ChessBoardDisplay(this);
+
+            if ((gameMode & 1) > 0) gameAIs[1] = new AI(c.getBoard(), true, defaultSearchDepth);
+            if ((gameMode & 2) > 0) gameAIs[0] = new AI(c.getBoard(), false, defaultSearchDepth);
+
+            isWhiteMove = true;
+            paintTiles();
+        }
 		
 		void MainFormResizeEnd(object sender, EventArgs e)
 		{
@@ -122,36 +129,55 @@ namespace Chess
 		
 		void PictureBoxClick(object sender, EventArgs e)
 		{
+            ChessBoard cb = c.getBoard();
+
+            int isPlayerIndex = isWhiteMove ? 1 : 2;
 			Point mousePosition = pictureBox1.PointToClient(Cursor.Position);
 			int mouseX = mousePosition.X;
 			int mouseY = mousePosition.Y;
 			int indexClicked = (mouseX / tileSize) + (8 * (mouseY / tileSize));
-			ulong[] dict = c.getDict(isWhiteMove);
-			if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], indexClicked)){
-				ulong vMoves = c.getValidMoves(isWhiteMove, indexClicked);
-				validMoveOverlays = vMoves;
-				selectedPiece = indexClicked;
-			} else if (trueAtIndex(validMoveOverlays, indexClicked) && selectedPiece != -1){
-				c.movePiece(isWhiteMove, selectedPiece, indexClicked);
-				c.getAllLocations(isWhiteMove);
-                c.getAllLocations(!isWhiteMove);
-				if (c.checkForMate(isWhiteMove)){
-					validMoveOverlays = 0;
-					overlays = new int[64];
-					c.genOverlay();
-					paintTiles();
-					String colorStr = isWhiteMove ? "White" : "Black";
-					MessageBox.Show("Checkmate! " + colorStr + " wins!");
-				}
-				selectedPiece = -1;
-				validMoveOverlays = 0;
-				isWhiteMove = !isWhiteMove;
-				overlays = new int[64];
-				c.genOverlay();
-			}
-			paintTiles();
+			ulong[] dict = cb.getDict(isWhiteMove);
+            if ((gameMode & isPlayerIndex) == 0) //is not an AI move
+            {
+                if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], indexClicked))
+                {
+                    ulong vMoves = cb.getValidMoves(isWhiteMove, indexClicked);
+                    validMoveOverlays = vMoves;
+                    selectedPiece = indexClicked;
+                }
+                else if (trueAtIndex(validMoveOverlays, indexClicked) && selectedPiece != -1)
+                {
+                    cb.movePiece(isWhiteMove, selectedPiece, indexClicked);
+                    cb.getAllLocations(isWhiteMove);
+                    cb.getAllLocations(!isWhiteMove);
+                    if (cb.checkForMate(isWhiteMove))
+                    {
+                        validMoveOverlays = 0;
+                        overlays = new int[64];
+                        c.genOverlay();
+                        paintTiles();
+                        String colorStr = isWhiteMove ? "White" : "Black";
+                        MessageBox.Show("Checkmate! " + colorStr + " wins!");
+                    }
+                    selectedPiece = -1;
+                    validMoveOverlays = 0;
+                    isWhiteMove = !isWhiteMove;
+                    overlays = new int[64];
+                    c.genOverlay();
+
+                    isPlayerIndex = isWhiteMove ? 1 : 2;
+                    if ((gameMode & isPlayerIndex) > 0) //is an AI move
+                    {
+                        int[] aiMove;
+                        if (isWhiteMove) aiMove = gameAIs[1].getAIMove();
+                        else aiMove = gameAIs[0].getAIMove();
+                        cb.movePiece(isWhiteMove, aiMove[0], aiMove[1]);
+                        isWhiteMove = !isWhiteMove;
+                    }
+                }
+                paintTiles();
+            }
 		}
-		
 		
 		
 		public static ulong setAtIndex(ulong state, int index, bool isTrue){
@@ -163,5 +189,12 @@ namespace Chess
 			return (t & (ulong)(1uL << (63 - i))) > 0;
 			//invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
 		}
-	}
+
+        private void undoButton_Click(object sender, EventArgs e)
+        {
+            c.getBoard().undoMove();
+            paintTiles();
+            isWhiteMove = !isWhiteMove;
+        }
+    }
 }

@@ -14,27 +14,37 @@ namespace Chess
 	/// </summary>
 	public partial class SelectionForm : Form
 	{
+        int option = 0;
+        //option is a  number that tells us which colors are AIs
+        //white is LSB, black is MSB
 		public SelectionForm()
 		{
-			//
-			// The InitializeComponent() call is required for Windows Forms designer support.
-			//
 			InitializeComponent();
-			
-			//
-			// TODO: Add constructor code after the InitializeComponent() call.
-			//
 		}
 		void StartButtonClick(object sender, EventArgs e)
 		{
-			int option = 0;
-			if (pvaiButton.Checked) option = 1;
-			else if (aivaiButton.Checked) option = 2;
-			else if (demogameButton.Checked) option = 3;
 			MainForm m = new MainForm(option);
 			m.Closed += (s, args) => this.Close();
 			this.Hide();
 			m.Show();
 		}
-	}
+
+        private void settingsButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedIndex == 0) option &= 2;
+            if (comboBox1.SelectedIndex == 1) option |= 1;
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox2.SelectedIndex == 0) option &= 1;
+            if (comboBox2.SelectedIndex == 1) option |= 2;
+        }
+        
+    }
 }

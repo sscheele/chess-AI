@@ -123,24 +123,47 @@ namespace Chess
             black_ep = -1;
         }
 
-        public void undoMove()
+        public void undoMove(bool isWhite)
         {
-            var oldMoveList = new List<int[]>(moveList);
-            resetBoard();
-
-            bool currMove = true;
-            for (int i = 0; i < oldMoveList.Count - 1; i++)
+            ulong[] dict = isWhite ? white : black;
+            ulong[] enemyDict = isWhite ? black : white;
+            int[] lastMove = moveList[moveList.Count - 1];
+            //special case for castling
+            for (int i = 0; i < pieceIndex.KING; i++)
             {
-                movePiece(currMove, oldMoveList[i][0], oldMoveList[i][1]);
-                currMove = !currMove;
+                if (trueAtIndex(dict[i], lastMove[1]))
+                {
+                    dict[i] = setAtIndex(dict[i], lastMove[0], true);
+                    dict[i] = setAtIndex(dict[i], lastMove[1], false);
+                }
+            }
+            if (trueAtIndex(dict[pieceIndex.KING], lastMove[1]) && Math.Abs(lastMove[0] - lastMove[1]) == 2)
+            {
+                //castling right, aka kingside
+                if (dict[1] > dict[0])
+                {
+                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] + 1, false);
+                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] + 3, true);
+                } else { //castling left, aka queenside
+                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] - 1, false);
+                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] - 4, true);
+                }
+            } else {
+                //pieces are restored from captures
+                if (lastMove[2] >= 0) enemyDict[lastMove[2]] = setAtIndex(enemyDict[lastMove[2]], lastMove[1], true);
+                //pieces are removed from promotions
+                if (lastMove[3] >= 0) dict[lastMove[3]] = setAtIndex(dict[lastMove[3]], lastMove[1], false);
             }
             getAllLocations(true);
             getAllLocations(false);
             white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
             black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+            moveList.RemoveAt(moveList.Count - 1);
         }
 		
 		public void movePiece(bool isWhite, int begin, int end){
+            int captureLayer = -1;
+            int promotionLayer = -1;
 			ulong[] dict = isWhite ? white : black;
 			ulong[] enemyDict = isWhite ? black : white;
 			for (int i = 0; i <= pieceIndex.KING; i++){
@@ -149,11 +172,15 @@ namespace Chess
 					dict[i] = setAtIndex(dict[i], end, true);
 					if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end)){
 						for (int j = 0; j <= pieceIndex.KING; j++){
-                            if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
-						}
+                            if (trueAtIndex(enemyDict[j], end))
+                            {
+                                enemyDict[j] = setAtIndex(enemyDict[j], end, false);
+                                captureLayer = j;
+                            }
+                        }
 					}
                     //if king or rook moving, invalidate castle
-                    if (i == pieceIndex.KING && (dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
+                    if (i == pieceIndex.KING) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
                     if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.LEFT_ROOK_CASTLE;
                     if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
 
@@ -183,20 +210,20 @@ namespace Chess
                         if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
 
                         //promotion
-                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite)) promotePiece(end, isWhite);
+                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite)) promotionLayer = promotePiece(end, isWhite);
                     } else {
                         if (isWhite) white_ep = -1;
                         else black_ep = -1;
                     }
                 }
             }
-            moveList.Add(new int[] { begin, end });
+            moveList.Add(new int[] { begin, end, captureLayer, promotionLayer });
             moveNum++;
             getAllLocations(isWhite);
             dict[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(isWhite);
 		}
 
-        void promotePiece(int index, bool isWhite)
+        int promotePiece(int index, bool isWhite)
         {
             promotionForm pf = new promotionForm(isWhite);
             pf.ShowDialog();
@@ -204,6 +231,7 @@ namespace Chess
             ulong[] dict = isWhite ? white : black;
             dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], index, false);
             dict[promotionChoice] = setAtIndex(dict[promotionChoice], index, true);
+            return promotionChoice;
         }
 
         void promotePiece(int index, bool isWhite, int promotionChoice)

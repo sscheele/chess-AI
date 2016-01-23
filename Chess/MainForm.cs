@@ -192,7 +192,7 @@ namespace Chess
 
         private void undoButton_Click(object sender, EventArgs e)
         {
-            c.getBoard().undoMove();
+            c.getBoard().undoMove(!isWhiteMove);
             paintTiles();
             isWhiteMove = !isWhiteMove;
         }

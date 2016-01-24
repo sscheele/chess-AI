@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AI.cs" />
+    <Compile Include="BitboardLayer.cs" />
     <Compile Include="ChessBoard.cs" />
     <Compile Include="ChessBoardDisplay.cs" />
     <Compile Include="MainForm.cs">
@@ -73,6 +74,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Rating.cs" />
     <Compile Include="SelectionForm.cs">
       <SubType>Form</SubType>
     </Compile>

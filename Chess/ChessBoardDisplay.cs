@@ -18,20 +18,23 @@ namespace Chess
 
         public void genOverlay()
         {
-            ulong[] white = c.getDict(true);
-            ulong[] black = c.getDict(false);
+            BitboardLayer[] white = c.getDict(true);
+            BitboardLayer[] black = c.getDict(false);
             for (int i = 0; i < 64; i++)
             {
                 frm.setOverlay(i, 15);
             }
             for (int s = 0; s <= pieceIndex.KING; s++)
             {
-                ulong blackArr = black[s];
-                ulong whiteArr = white[s];
-                for (int i = 0; i < 64; i++)
+                BitboardLayer blackArr = black[s];
+                BitboardLayer whiteArr = white[s];
+                foreach (int i in whiteArr.getTrueIndicies())
                 {
-                    if (trueAtIndex(whiteArr, i)) frm.setOverlay(i, s);
-                    if (trueAtIndex(blackArr, i)) frm.setOverlay(i, s + 6);
+                    frm.setOverlay(i, s);
+                }
+                foreach (int i in blackArr.getTrueIndicies())
+                {
+                    frm.setOverlay(i, s + 6);
                 }
             }
         }

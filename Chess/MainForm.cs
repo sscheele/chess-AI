@@ -18,13 +18,13 @@ namespace Chess
 	public partial class MainForm : Form
 	{
         AI[] gameAIs = new AI[2];
-        static int defaultSearchDepth = 3;
+        static int defaultSearchDepth = 4;
 
         static string imagePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory().ToString()).ToString(), "Images");
 		PictureBox[] allTiles;
         bool[] baseTiles = new bool[64];
 		int[] overlays = new int[64];
-		ulong validMoveOverlays = 0; //layer containing info as to whether a square should be marked as valid
+		BitboardLayer validMoveOverlays = new BitboardLayer(); //layer containing info as to whether a square should be marked as valid
 		int tileSize;
 		ChessBoardDisplay c;
 		bool isWhiteMove;
@@ -91,7 +91,7 @@ namespace Chess
             for (int i = 0; i < baseTiles.Length; i++) {
                 Image imgOverlay = null;
                 bool isValid = false;
-                if (trueAtIndex(validMoveOverlays, i))
+                if (validMoveOverlays.trueAtIndex(i))
                 {
                     imgOverlay = pieceOverlays[pieceOverlays.Length - 1];
                     isValid = true;
@@ -136,23 +136,23 @@ namespace Chess
 			int mouseX = mousePosition.X;
 			int mouseY = mousePosition.Y;
 			int indexClicked = (mouseX / tileSize) + (8 * (mouseY / tileSize));
-			ulong[] dict = cb.getDict(isWhiteMove);
+			BitboardLayer[] dict = cb.getDict(isWhiteMove);
             if ((gameMode & isPlayerIndex) == 0) //is not an AI move
             {
-                if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], indexClicked))
+                if (dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(indexClicked))
                 {
-                    ulong vMoves = cb.getValidMoves(isWhiteMove, indexClicked);
+                    BitboardLayer vMoves = cb.getValidMoves(isWhiteMove, indexClicked);
                     validMoveOverlays = vMoves;
                     selectedPiece = indexClicked;
                 }
-                else if (trueAtIndex(validMoveOverlays, indexClicked) && selectedPiece != -1)
+                else if (validMoveOverlays.trueAtIndex(indexClicked) && selectedPiece != -1)
                 {
                     cb.movePiece(isWhiteMove, selectedPiece, indexClicked);
                     cb.getAllLocations(isWhiteMove);
                     cb.getAllLocations(!isWhiteMove);
                     if (cb.checkForMate(isWhiteMove))
                     {
-                        validMoveOverlays = 0;
+                        validMoveOverlays = new BitboardLayer();
                         overlays = new int[64];
                         c.genOverlay();
                         paintTiles();
@@ -160,7 +160,7 @@ namespace Chess
                         MessageBox.Show("Checkmate! " + colorStr + " wins!");
                     }
                     selectedPiece = -1;
-                    validMoveOverlays = 0;
+                    validMoveOverlays = new BitboardLayer();
                     isWhiteMove = !isWhiteMove;
                     overlays = new int[64];
                     c.genOverlay();
@@ -169,8 +169,8 @@ namespace Chess
                     if ((gameMode & isPlayerIndex) > 0) //is an AI move
                     {
                         int[] aiMove;
-                        if (isWhiteMove) aiMove = gameAIs[1].getAIMove();
-                        else aiMove = gameAIs[0].getAIMove();
+                        if (isWhiteMove) aiMove = gameAIs[1].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], 0)[0];
+                        else aiMove = gameAIs[0].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], 0)[0];
                         cb.movePiece(isWhiteMove, aiMove[0], aiMove[1]);
                         isWhiteMove = !isWhiteMove;
                     }

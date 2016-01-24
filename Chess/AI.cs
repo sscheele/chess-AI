@@ -39,69 +39,76 @@ namespace Chess
 			this.searchDepth = searchDepth;
 			isTheoretical = true;
 			parent_child = parentAI;
-		}
+		}	
 		
-		static ulong setAtIndex(ulong state, int index, bool isTrue){
-			if (isTrue) return state | (ulong)(1uL << (63 - index));
-			return state & ~((ulong)(1uL << 63 - index));
-		}
-		
-		static bool trueAtIndex(ulong t, int i){ //easier to think of the other way
-			return (t & (ulong)(1uL << (63 - i))) > 0;
-			//invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
-		}
 
-        ulong[] getPossibleMoves(ChessBoard c)
+        BitboardLayer[] getPossibleMoves(ChessBoard c)
         {
-            ulong[] retVal = new ulong[64];
-            ulong[] dict = c.getDict(isWhite);
-            ulong[] enemyDict = c.getDict(!isWhite);
-            for (int i = 0; i < 64; i++)
-            {
-                if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], i))
-                {
-                    retVal[i] = c.getValidMoves(isWhite, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
-                }
+            BitboardLayer[] retVal = new BitboardLayer[64];
+            BitboardLayer[] dict = c.getDict(isWhite);
+            BitboardLayer[] enemyDict = c.getDict(!isWhite);
+            foreach (int i in dict[pieceIndex.ALL_LOCATIONS].getTrueIndicies()) { 
+                retVal[i] = c.getValidMoves(isWhite, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
             }
             return retVal;
         }
         
 
-        int[][] alphaBeta(int depth, int alpha, int beta, int[] move, int player)
+        public int[][] alphaBeta(int depth, int alpha, int beta, int[] move, int player)
         {
-            ulong[] possibleMoves = getPossibleMoves(c);
-            bool hasValidMoves = false;
+            BitboardLayer[] possibleMoves = getPossibleMoves(c);
+            //ulong[] possibleMoves = new ulong[64];
+
+            int numMoves = 0;
             for (int i = 0; i < 64; i++)
             {
-                if (possibleMoves[i] > 0)
-                {
-                    hasValidMoves = true;
-                    break;
-                }
+                if (possibleMoves[i].getLayerData() > 0) numMoves++; //need this for rating later
             }
-            if (depth == 0 || !hasValidMoves) return new int[][] { move, new int[] { player * boardEval() } };
+            /*
+            int lim = 0;
+            for (int i = 0; i < lim; i++)
+            {
+                possibleMoves[i] = (ulong)1 << 27;
+            }
+            */
+            //bool hasValidMoves = true;
+            if (depth == 0 || numMoves == 0) return new int[][] { move, new int[] { /*player */ Rating.rating(isWhite, c, numMoves, searchDepth) } };
             //TODO: sort for alphabeta
-            player = -1 * player;
+            player *= -1;
             for (int i = 0; i < 64; i++)
             {
-                if (possibleMoves[i] > 0)
-                {
-                    for (int j = 0; i < 64; j++)
+                foreach (int j in possibleMoves[i].getTrueIndicies()) { 
+                    c.movePiece(player == -1 ^ isWhite, i, j);
+                    int[][] retVal = alphaBeta(depth - 1, alpha, beta, new int[] { i, j }, player);
+                    c.undoMove(player == -1 ^ isWhite);
+                    if (player == -1)
                     {
-                        if (trueAtIndex(possibleMoves[i], j))
+                        if (retVal[1][0] <= beta)
                         {
-                            ChessBoard tempBoard = new ChessBoard(c);
-                            c.movePiece(player == -1 ^ !isWhite, i, j);
-                            int[][] retVal = alphaBeta(depth - 1, alpha, beta, new int[] { i, j }, player);
-                            c = tempBoard;
+                            beta = retVal[1][0];
+                            if (depth == searchDepth) move = retVal[0];
                         }
+                    }
+                    else
+                    {
+                        if (retVal[1][0] > alpha)
+                        {
+                            alpha = retVal[1][0];
+                            if (depth == searchDepth) move = retVal[0];
+                        }
+                    }
+                    if (alpha >= beta)
+                    {
+                        if (player == -1) return new int[][] { move, new int[] { beta } };
+                        else return new int[][] { move, new int[] { alpha } };
                     }
                 }
             }
-            return null;
+            if (player == -1) return new int[][] { move, new int[] { beta } };
+            else return new int[][] { move, new int[] { alpha } };
         }
 		
-		public int[] getAIMove(){
+		public int[] alphaBeta(){
             /*
 			ulong[] myBoard = new ulong[pieceIndex.FLAGS + 1];
 			ulong[] enemyBoard = new ulong[pieceIndex.FLAGS + 1];
@@ -189,101 +196,5 @@ namespace Chess
 			return currValue;
 		}
         */
-    
-        int boardEval()
-        {
-            return 0; //placeholder
-        }
-		
-		int rawMoveValue(int index, ulong[] board){
-			if(trueAtIndex(board[pieceIndex.ALL_LOCATIONS], index)){
-				if(trueAtIndex(board[pieceIndex.PAWN], index)) return pieceVals.PAWN;
-				if(trueAtIndex(board[pieceIndex.ROOK], index)) return pieceVals.ROOK;
-				if(trueAtIndex(board[pieceIndex.KNIGHT], index)) return pieceVals.KNIGHT;
-				if(trueAtIndex(board[pieceIndex.BISHOP], index)) return pieceVals.BISHOP;
-				if(trueAtIndex(board[pieceIndex.QUEEN], index)) return pieceVals.QUEEN;
-				return pieceVals.KING;
-			}
-			return 0;
-		}
-		
-		ulong[][] movePiece(ChessBoard ctb, ulong[] dict, ulong[] enemyDict, int begin, int end){
-            ChessBoard newBoard = new ChessBoard(ctb);
-            int white_ep = newBoard.getEP(true);
-            int black_ep = newBoard.getEP(false);
-            for (int i = 0; i <= pieceIndex.KING; i++)
-            {
-                if (trueAtIndex(dict[i], begin))
-                {
-                    dict[i] = setAtIndex(dict[i], begin, false);
-                    dict[i] = setAtIndex(dict[i], end, true);
-                    if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end))
-                    {
-                        for (int j = 0; j <= pieceIndex.KING; j++)
-                        {
-                            if (trueAtIndex(enemyDict[j], end)) enemyDict[j] = setAtIndex(enemyDict[j], end, false);
-                        }
-                    }
-                    //if king or rook moving, invalidate castle
-                    if (i == pieceIndex.KING && (dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
-                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.LEFT_ROOK_CASTLE;
-                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
-
-                    //if castling, move rook to other side of king
-                    if (i == pieceIndex.KING)
-                    {
-                        int rookIndex = isWhite ? 56 : 0;
-                        int dir = begin < end ? 1 : -1;
-                        if (dir == 1) rookIndex += 7;
-                        if ((end - begin) * dir == 2)
-                        { //king is castling
-                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], rookIndex, false);
-                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], begin + dir, true);
-                        }
-                    }
-                    //add in en passant
-                    if (i == pieceIndex.PAWN)
-                    {
-                        int dir = begin < end ? 1 : -1;
-                        //set en passant of necessary
-                        if ((dir * (end - begin) / 8) == 2)
-                        {
-                            if (isWhite) white_ep = begin + dir * 8;
-                            else black_ep = begin + dir * 8;
-                        }
-                        else
-                        {
-                            if (isWhite) white_ep = -1;
-                            else black_ep = -1;
-                        }
-                        //if capturing en passant, remove enemy pawn
-                        int enemy_ep = isWhite ? black_ep : white_ep;
-                        if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
-
-                        //promotion
-                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite))
-                        {
-                            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], i, false);
-                            dict[pieceIndex.QUEEN] = setAtIndex(dict[pieceIndex.QUEEN], i, true);
-                        }
-                    }
-                    else
-                    {
-                        if (isWhite) white_ep = -1;
-                        else black_ep = -1;
-                    }
-                }
-            }
-            return new ulong[][] { dict, enemyDict };
-        }
-	}
-	
-	public static class pieceVals{
-		public const int PAWN = 1;
-		public const int ROOK = 5;
-		public const int KNIGHT = 3;
-		public const int BISHOP = 3;
-		public const int QUEEN = 9;
-		public const int KING = Int32.MaxValue;
 	}
 }

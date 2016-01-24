@@ -13,48 +13,54 @@ namespace Chess
         List<int[]> moveList = new List<int[]>();
         int moveNum = 0;
 
-		ulong[] white = new ulong[10];
-		ulong[] black = new ulong[10];
+		BitboardLayer[] white = new BitboardLayer[10];
+		BitboardLayer[] black = new BitboardLayer[10];
         int black_ep = -1;
         int white_ep = -1;
 		
-		public ChessBoard(ulong[] white, ulong[] black){
+		public ChessBoard(BitboardLayer[] white, BitboardLayer[] black){
             if (white == null || black == null)
             {
                 //pawn
                 ulong temp = Convert.ToUInt64("0000000011111111000000000000000000000000000000000000000000000000", 2);
-                this.black[pieceIndex.PAWN] = temp;
+                this.black[pieceIndex.PAWN] = new BitboardLayer(temp);
                 temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000001111111100000000", 2);
-                this.white[pieceIndex.PAWN] = temp;
+                this.white[pieceIndex.PAWN] = new BitboardLayer(temp);
                 //rook
                 temp = Convert.ToUInt64("1000000100000000000000000000000000000000000000000000000000000000", 2);
-                this.black[pieceIndex.ROOK] = temp;
+                this.black[pieceIndex.ROOK] = new BitboardLayer(temp);
                 temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000010000001", 2);
-                this.white[pieceIndex.ROOK] = temp;
+                this.white[pieceIndex.ROOK] = new BitboardLayer(temp);
                 //knight
                 temp = Convert.ToUInt64("0100001000000000000000000000000000000000000000000000000000000000", 2);
-                this.black[pieceIndex.KNIGHT] = temp;
+                this.black[pieceIndex.KNIGHT] = new BitboardLayer(temp);
                 temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000001000010", 2);
-                this.white[pieceIndex.KNIGHT] = temp;
+                this.white[pieceIndex.KNIGHT] = new BitboardLayer(temp);
                 //bishop
                 temp = Convert.ToUInt64("0010010000000000000000000000000000000000000000000000000000000000", 2);
-                this.black[pieceIndex.BISHOP] = temp;
+                this.black[pieceIndex.BISHOP] = new BitboardLayer(temp);
                 temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000100100", 2);
-                this.white[pieceIndex.BISHOP] = temp;
+                this.white[pieceIndex.BISHOP] = new BitboardLayer(temp);
                 //queen
-                this.black[pieceIndex.QUEEN] = Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2);
-                this.white[pieceIndex.QUEEN] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2);
+                this.black[pieceIndex.QUEEN] = new BitboardLayer(Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2));
+                this.white[pieceIndex.QUEEN] = new BitboardLayer(Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2));
                 //king
-                this.black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
-                this.white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
+                this.black[pieceIndex.KING] = new BitboardLayer(Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2));
+                this.white[pieceIndex.KING] = new BitboardLayer(Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2));
                 //set flags used for castling
-                this.white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
-                this.black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
+                this.white[pieceIndex.FLAGS] = new BitboardLayer(Convert.ToUInt64("111", 2)); //castling flags - left rook, king, right rook
+                this.black[pieceIndex.FLAGS] = new BitboardLayer(Convert.ToUInt64("111", 2));
 
                 getAllLocations(true);
                 getAllLocations(false);
+
+                this.white[pieceIndex.ATTACKED_SQUARES] = new BitboardLayer();
+                this.black[pieceIndex.ATTACKED_SQUARES] = new BitboardLayer();
                 this.white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
                 this.black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+
+                this.white[pieceIndex.VALID_MOVES] = new BitboardLayer();
+                this.black[pieceIndex.VALID_MOVES] = new BitboardLayer();
             } else
             {
                 this.white = white;
@@ -63,8 +69,11 @@ namespace Chess
 		}
 		
 		public ChessBoard(ChessBoard c){
-            Array.Copy(c.getDict(true), white, white.Length);
-			Array.Copy(c.getDict(false), black, black.Length);
+            for (int i = 0; i <= pieceIndex.FLAGS; i++)
+            {
+                white[i] = new BitboardLayer(c.getDict(true)[i]);
+                black[i] = new BitboardLayer(c.getDict(false)[i]);
+            }
             white_ep = c.getEP(true);
             black_ep = c.getEP(false);
             moveList = new List<int[]>(c.getMoveList());
@@ -77,39 +86,39 @@ namespace Chess
 
         public int getEP(bool isWhite){ return isWhite ? white_ep : black_ep; }
 		
-		public ulong[] getDict(bool isWhite){ return isWhite ? white : black; }
+		public BitboardLayer[] getDict(bool isWhite){ return isWhite ? white : black; }
 
         public void resetBoard()
         {
             //pawn
             ulong temp = Convert.ToUInt64("0000000011111111000000000000000000000000000000000000000000000000", 2);
-            this.black[pieceIndex.PAWN] = temp;
+            this.black[pieceIndex.PAWN] = new BitboardLayer(temp);
             temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000001111111100000000", 2);
-            this.white[pieceIndex.PAWN] = temp;
+            this.white[pieceIndex.PAWN] = new BitboardLayer(temp);
             //rook
             temp = Convert.ToUInt64("1000000100000000000000000000000000000000000000000000000000000000", 2);
-            this.black[pieceIndex.ROOK] = temp;
+            this.black[pieceIndex.ROOK] = new BitboardLayer(temp);
             temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000010000001", 2);
-            this.white[pieceIndex.ROOK] = temp;
+            this.white[pieceIndex.ROOK] = new BitboardLayer(temp);
             //knight
             temp = Convert.ToUInt64("0100001000000000000000000000000000000000000000000000000000000000", 2);
-            this.black[pieceIndex.KNIGHT] = temp;
+            this.black[pieceIndex.KNIGHT] = new BitboardLayer(temp);
             temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000001000010", 2);
-            this.white[pieceIndex.KNIGHT] = temp;
+            this.white[pieceIndex.KNIGHT] = new BitboardLayer(temp);
             //bishop
             temp = Convert.ToUInt64("0010010000000000000000000000000000000000000000000000000000000000", 2);
-            this.black[pieceIndex.BISHOP] = temp;
+            this.black[pieceIndex.BISHOP] = new BitboardLayer(temp);
             temp = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000100100", 2);
-            this.white[pieceIndex.BISHOP] = temp;
+            this.white[pieceIndex.BISHOP] = new BitboardLayer(temp);
             //queen
-            this.black[pieceIndex.QUEEN] = Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2);
-            this.white[pieceIndex.QUEEN] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2);
+            this.black[pieceIndex.QUEEN] = new BitboardLayer(Convert.ToUInt64("0001000000000000000000000000000000000000000000000000000000000000", 2));
+            this.white[pieceIndex.QUEEN] = new BitboardLayer(Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000010000", 2));
             //king
-            this.black[pieceIndex.KING] = Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2);
-            this.white[pieceIndex.KING] = Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2);
+            this.black[pieceIndex.KING] = new BitboardLayer(Convert.ToUInt64("0000100000000000000000000000000000000000000000000000000000000000", 2));
+            this.white[pieceIndex.KING] = new BitboardLayer(Convert.ToUInt64("0000000000000000000000000000000000000000000000000000000000001000", 2));
             //set flags used for castling
-            this.white[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2); //castling flags - left rook, king, right rook
-            this.black[pieceIndex.FLAGS] = Convert.ToUInt64("111", 2);
+            this.white[pieceIndex.FLAGS] = new BitboardLayer(Convert.ToUInt64("111", 2)); //castling flags - left rook, king, right rook
+            this.black[pieceIndex.FLAGS] = new BitboardLayer(Convert.ToUInt64("111", 2));
 
             getAllLocations(true);
             getAllLocations(false);
@@ -125,64 +134,64 @@ namespace Chess
 
         public void undoMove(bool isWhite)
         {
-            ulong[] dict = isWhite ? white : black;
-            ulong[] enemyDict = isWhite ? black : white;
+            BitboardLayer[] dict = isWhite ? white : black;
+            BitboardLayer[] enemyDict = isWhite ? black : white;
             int[] lastMove = moveList[moveList.Count - 1];
             //special case for castling
-            for (int i = 0; i < pieceIndex.KING; i++)
+            for (int i = 0; i <= pieceIndex.KING; i++)
             {
-                if (trueAtIndex(dict[i], lastMove[1]))
+                if (dict[i].trueAtIndex(lastMove[1]))
                 {
-                    dict[i] = setAtIndex(dict[i], lastMove[0], true);
-                    dict[i] = setAtIndex(dict[i], lastMove[1], false);
+                    dict[i].setAtIndex(lastMove[0], true);
+                    dict[i].setAtIndex(lastMove[1], false);
                 }
             }
-            if (trueAtIndex(dict[pieceIndex.KING], lastMove[1]) && Math.Abs(lastMove[0] - lastMove[1]) == 2)
+            if (dict[pieceIndex.KING].trueAtIndex(lastMove[1]) && Math.Abs(lastMove[0] - lastMove[1]) == 2)
             {
                 //castling right, aka kingside
-                if (dict[1] > dict[0])
+                if (dict[1].getLayerData() > dict[0].getLayerData())
                 {
-                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] + 1, false);
-                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] + 3, true);
+                    dict[pieceIndex.ROOK].setAtIndex(lastMove[0] + 1, false);
+                    dict[pieceIndex.ROOK].setAtIndex(lastMove[0] + 3, true);
                 } else { //castling left, aka queenside
-                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] - 1, false);
-                    dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], lastMove[0] - 4, true);
+                    dict[pieceIndex.ROOK].setAtIndex(lastMove[0] - 1, false);
+                    dict[pieceIndex.ROOK].setAtIndex(lastMove[0] - 4, true);
                 }
             } else {
                 //pieces are restored from captures
-                if (lastMove[2] >= 0) enemyDict[lastMove[2]] = setAtIndex(enemyDict[lastMove[2]], lastMove[1], true);
+                if (lastMove[2] >= 0) enemyDict[lastMove[2]].setAtIndex(lastMove[1], true);
                 //pieces are removed from promotions
-                if (lastMove[3] >= 0) dict[lastMove[3]] = setAtIndex(dict[lastMove[3]], lastMove[1], false);
+                if (lastMove[3] >= 0) dict[lastMove[3]].setAtIndex(lastMove[1], false);
             }
             getAllLocations(true);
             getAllLocations(false);
-            white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
-            black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
+            white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
+            black[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(false).getLayerData());
             moveList.RemoveAt(moveList.Count - 1);
         }
 		
 		public void movePiece(bool isWhite, int begin, int end){
             int captureLayer = -1;
             int promotionLayer = -1;
-			ulong[] dict = isWhite ? white : black;
-			ulong[] enemyDict = isWhite ? black : white;
+			BitboardLayer[] dict = isWhite ? white : black;
+			BitboardLayer[] enemyDict = isWhite ? black : white;
 			for (int i = 0; i <= pieceIndex.KING; i++){
-				if (trueAtIndex(dict[i], begin)){
-					dict[i] = setAtIndex(dict[i], begin, false);
-					dict[i] = setAtIndex(dict[i], end, true);
-					if (trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], end)){
+				if (dict[i].trueAtIndex(begin)){
+					dict[i].setAtIndex(begin, false);
+					dict[i].setAtIndex(end, true);
+					if (enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(end)){
 						for (int j = 0; j <= pieceIndex.KING; j++){
-                            if (trueAtIndex(enemyDict[j], end))
+                            if (enemyDict[j].trueAtIndex(end))
                             {
-                                enemyDict[j] = setAtIndex(enemyDict[j], end, false);
+                                enemyDict[j].setAtIndex(end, false);
                                 captureLayer = j;
                             }
                         }
 					}
                     //if king or rook moving, invalidate castle
-                    if (i == pieceIndex.KING) dict[pieceIndex.FLAGS] &= ~flagIndex.KING_CASTLE;
-                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.LEFT_ROOK_CASTLE;
-                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS] &= ~flagIndex.RIGHT_ROOK_CASTLE;
+                    if (i == pieceIndex.KING) dict[pieceIndex.FLAGS].setLayerData(dict[pieceIndex.FLAGS].getLayerData() & ~flagIndex.KING_CASTLE);
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 0 && (dict[pieceIndex.FLAGS].getLayerData() & flagIndex.LEFT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS].setLayerData(dict[pieceIndex.FLAGS].getLayerData() & ~flagIndex.LEFT_ROOK_CASTLE);
+                    if (i == pieceIndex.ROOK && (begin / 8 == 0 || begin / 8 == 7) && begin % 8 == 7 && (dict[pieceIndex.FLAGS].getLayerData() & flagIndex.RIGHT_ROOK_CASTLE) > 0) dict[pieceIndex.FLAGS].setLayerData(dict[pieceIndex.FLAGS].getLayerData() & ~flagIndex.RIGHT_ROOK_CASTLE);
 
                     //if castling, move rook to other side of king
                     if (i == pieceIndex.KING){
@@ -190,8 +199,8 @@ namespace Chess
                         int dir = begin < end ? 1 : -1;
                         if (dir == 1) rookIndex += 7;
                         if ((end - begin) * dir == 2) { //king is castling
-                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], rookIndex, false);
-                            dict[pieceIndex.ROOK] = setAtIndex(dict[pieceIndex.ROOK], begin + dir, true);
+                            dict[pieceIndex.ROOK].setAtIndex(rookIndex, false);
+                            dict[pieceIndex.ROOK].setAtIndex(begin + dir, true);
                         }
                     }
                     //add in en passant
@@ -207,7 +216,7 @@ namespace Chess
                         }
                         //if capturing en passant, remove enemy pawn
                         int enemy_ep = isWhite ? black_ep : white_ep;
-                        if (end == enemy_ep) enemyDict[pieceIndex.PAWN] = setAtIndex(enemyDict[pieceIndex.PAWN], enemy_ep - dir * 8, false);
+                        if (end == enemy_ep) enemyDict[pieceIndex.PAWN].setAtIndex(enemy_ep - dir * 8, false);
 
                         //promotion
                         if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite)) promotionLayer = promotePiece(end, isWhite);
@@ -220,7 +229,7 @@ namespace Chess
             moveList.Add(new int[] { begin, end, captureLayer, promotionLayer });
             moveNum++;
             getAllLocations(isWhite);
-            dict[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(isWhite);
+            dict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(isWhite).getLayerData());
 		}
 
         int promotePiece(int index, bool isWhite)
@@ -228,37 +237,37 @@ namespace Chess
             promotionForm pf = new promotionForm(isWhite);
             pf.ShowDialog();
             int promotionChoice = pf.result;
-            ulong[] dict = isWhite ? white : black;
-            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], index, false);
-            dict[promotionChoice] = setAtIndex(dict[promotionChoice], index, true);
+            BitboardLayer[] dict = isWhite ? white : black;
+            dict[pieceIndex.PAWN].setAtIndex(index, false);
+            dict[promotionChoice].setAtIndex(index, true);
             return promotionChoice;
         }
 
         void promotePiece(int index, bool isWhite, int promotionChoice)
         {
-            ulong[] dict = isWhite ? white : black;
-            dict[pieceIndex.PAWN] = setAtIndex(dict[pieceIndex.PAWN], index, false);
-            dict[promotionChoice] = setAtIndex(dict[promotionChoice], index, true);
+            BitboardLayer[] dict = isWhite ? white : black;
+            dict[pieceIndex.PAWN].setAtIndex(index, false);
+            dict[promotionChoice].setAtIndex(index, true);
         }
 		
 		public void getAllLocations(bool isWhite){
-			ulong[] dict = isWhite ? white : black;
-			dict[pieceIndex.ALL_LOCATIONS] = 0;
+			BitboardLayer[] dict = isWhite ? white : black;
+			dict[pieceIndex.ALL_LOCATIONS] = new BitboardLayer();
 			for (int i = 0; i <= pieceIndex.KING; i++){
-				dict[pieceIndex.ALL_LOCATIONS] |= dict[i];
+				dict[pieceIndex.ALL_LOCATIONS].setLayerData(dict[pieceIndex.ALL_LOCATIONS].getLayerData() | dict[i].getLayerData());
 			}
 		}		
 		
-		public ulong getValidMoves(bool isWhite, int index, ulong enemyAllPos = 0, bool applyCheckLimits = true, bool fromAttackedSq = false){
-            ulong[] w = white;
-            ulong[] b = black;
-			if (enemyAllPos == 0) enemyAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
-			ulong retVal = 0;
-			ulong[] dict = isWhite ? w : b;
-			ulong newAllPos = dict[pieceIndex.ALL_LOCATIONS];
-			ulong[] enemyDict = isWhite ? b : w;
+		public BitboardLayer getValidMoves(bool isWhite, int index, BitboardLayer enemyAllPos = null, bool applyCheckLimits = true, bool fromAttackedSq = false){
+            BitboardLayer[] w = white;
+            BitboardLayer[] b = black;
+			if (enemyAllPos == null) enemyAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
+			BitboardLayer retVal = new BitboardLayer();
+			BitboardLayer[] dict = isWhite ? w : b;
+			BitboardLayer newAllPos = dict[pieceIndex.ALL_LOCATIONS];
+			BitboardLayer[] enemyDict = isWhite ? b : w;
 			for (int s = 0; s <= pieceIndex.KING; s++){
-				if(trueAtIndex(dict[s], index)){
+				if(dict[s].trueAtIndex(index)){
 					bool isKingMove = false;
 					switch(s){
 						case pieceIndex.PAWN:
@@ -269,24 +278,24 @@ namespace Chess
 							//move one in dir
 							if (moveIndex >= 0 && moveIndex <= 63 && 
 							    !checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) &&
-                                !fromAttackedSq) retVal = setAtIndex(retVal, moveIndex, true);
+                                !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							
 							//captures
 							if (moveIndex - 1 >= 0 && moveIndex - 1 <= 63 && //in bounds
 								(moveIndex - 1) / 8 == moveIndex / 8 && //on same rank
-								trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], moveIndex - 1)) retVal = setAtIndex(retVal, moveIndex - 1, true);
+                                enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex - 1)) retVal.setAtIndex(moveIndex - 1, true);
 							if (moveIndex + 1 >= 0 && moveIndex + 1 <= 63 && //in bounds
 								(moveIndex + 1) / 8 == moveIndex / 8 && //on same rank
-								trueAtIndex(enemyDict[pieceIndex.ALL_LOCATIONS], moveIndex + 1)) retVal = setAtIndex(retVal, moveIndex + 1, true);
+                                enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex + 1)) retVal.setAtIndex(moveIndex + 1, true);
 							
 							//move two in dir
 							if (index / 8 == pawnFile){
 								moveIndex += direction * 8;
-								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) && !fromAttackedSq) retVal = setAtIndex(retVal, moveIndex, true);
+								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) && !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							}
 
                             //en passant captures
-                            if (index + direction * 7 == enemy_ep || index + direction * 9 == enemy_ep) retVal = setAtIndex(retVal, enemy_ep, true);
+                            if (index + direction * 7 == enemy_ep || index + direction * 9 == enemy_ep) retVal.setAtIndex(enemy_ep, true);
                             break;
 							
 						case pieceIndex.ROOK:
@@ -294,12 +303,12 @@ namespace Chess
 								for (int ext = 1; ext <= 8; ext++){
 									int testInd = index + (dir * ext);
 									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8 || testInd < 0 || testInd > 63) break;
-									retVal = setAtIndex(retVal, testInd, true);
+									retVal.setAtIndex(testInd, true);
 								}
 								for (int ext = 0; ext < 8; ext++) {
 									int testInd = index + (8 * dir * ext);
 									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8 || testInd < 0 || testInd > 63) break;
-									retVal = setAtIndex(retVal, testInd, true);
+									retVal.setAtIndex(testInd, true);
 								}
 							}
 							break;
@@ -307,7 +316,7 @@ namespace Chess
 							int[] diffs = {17, 15, 10, 6, -6, -10, -15, -17};
 							int[] rightRows = {16, 16, 8, 8, -8, -8, -16, -16};
 							for (int i = 0; i < diffs.Length; i++){
-								if ((index + diffs[i]) / 8 == (index + rightRows[i]) / 8 && index + diffs[i] >= 0 && index + diffs[i] <= 63 && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + diffs[i])) retVal = setAtIndex(retVal, index + diffs[i], true);
+								if ((index + diffs[i]) / 8 == (index + rightRows[i]) / 8 && index + diffs[i] >= 0 && index + diffs[i] <= 63 && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + diffs[i])) retVal.setAtIndex(index + diffs[i], true);
 							}
 							break;
 						case pieceIndex.BISHOP:
@@ -319,7 +328,7 @@ namespace Chess
 									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 64 || 
 									    Math.Abs((prevTemp / 8) - (temp / 8)) != 1 || Math.Abs((prevTemp / 8) - (temp / 8)) != 1) break;
 									prevTemp = temp;
-									retVal = setAtIndex(retVal, temp, true);
+									retVal.setAtIndex(temp, true);
 								}
 							}
 							break;
@@ -329,12 +338,12 @@ namespace Chess
 								for (int ext = 1; ext <= 8; ext++){
 									int testInd = index + (dir * ext);
 									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index / 8 != testInd / 8 || testInd < 0 || testInd > 63) break;
-									retVal = setAtIndex(retVal, testInd, true);
+									retVal.setAtIndex(testInd, true);
 								}
 								for (int ext = 0; ext < 8; ext++) {
 									int testInd = index + (8 * dir * ext);
 									if (checkCollision(index, testInd, newAllPos, enemyAllPos, fromAttackedSq) || index % 8 != testInd % 8 || testInd < 0 || testInd > 63) break;
-									retVal = setAtIndex(retVal, testInd, true);
+									retVal.setAtIndex(testInd, true);
 								}
 							}
                             //move like a bishop
@@ -346,7 +355,7 @@ namespace Chess
 									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 64 || 
 									    Math.Abs((prevTemp / 8) - (temp / 8)) != 1 || Math.Abs((prevTemp / 8) - (temp / 8)) != 1) break;
 									prevTemp = temp;
-									retVal = setAtIndex(retVal, temp, true);
+									retVal.setAtIndex(temp, true);
 								}
 							}
 							break;
@@ -356,77 +365,73 @@ namespace Chess
 							for (int a = -1; a <= 1; a++){
 								for (int c = -1; c <= 1; c++){
 									int newIndex = index + (8 * a) + c;
-									if (newIndex >= 0 && newIndex <= 63 && !trueAtIndex(newAllPos, newIndex)) retVal = setAtIndex(retVal, newIndex, true);
+									if (newIndex >= 0 && newIndex <= 63 && !newAllPos.trueAtIndex(newIndex)) retVal.setAtIndex(newIndex, true);
 								}
 							}
-                            if ((dict[pieceIndex.FLAGS] & flagIndex.KING_CASTLE) > 0 && !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index)) //king can castle
+                            if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.KING_CASTLE) > 0 && !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index)) //king can castle
                             {
-                                if((dict[pieceIndex.FLAGS] & flagIndex.LEFT_ROOK_CASTLE) > 0 &&
-                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index - 1) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index - 1) &&
-                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index - 2) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index - 2)) retVal = setAtIndex(retVal, index + 2, true); //king can castle right
+                                if((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.LEFT_ROOK_CASTLE) > 0 &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2))
+                                    retVal.setAtIndex(index + 2, true); //king can castle right
 
-                                if ((dict[pieceIndex.FLAGS] & flagIndex.RIGHT_ROOK_CASTLE) > 0 && 
-                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index + 1) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + 1) &&
-                                    !trueAtIndex(enemyDict[pieceIndex.ATTACKED_SQUARES], index + 2) && !trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], index + 2)) retVal = setAtIndex(retVal, index + 2, true); //king can castle right
+                                if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.RIGHT_ROOK_CASTLE) > 0 && 
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2)) retVal.setAtIndex(index + 2, true); //king can castle right
                             }
 							break;
 					}
-					retVal = setAtIndex(retVal, index, false);
+					retVal.setAtIndex(index, false);
 					if (applyCheckLimits) return applyCheck(isWhite, index, retVal, isKingMove);
 					return retVal;
 				}
 			}
-			return 0;
+			return new BitboardLayer();
 		}
 		
-		ulong applyCheck(bool isWhite, int beginIndex, ulong possibleMoves, bool isKingMove){
-			ulong[] myDict = isWhite ? white : black;
-			ulong[] enemyDict = isWhite ? black : white;
-			ulong retVal = possibleMoves;
-			ulong myBoard = 0;
+		BitboardLayer applyCheck(bool isWhite, int beginIndex, BitboardLayer possibleMoves, bool isKingMove){
+			BitboardLayer[] myDict = isWhite ? white : black;
+			BitboardLayer[] enemyDict = isWhite ? black : white;
+			BitboardLayer retVal = new BitboardLayer(possibleMoves);
+			BitboardLayer myBoard;
 			
-			getAttackedSquares(!isWhite);
-            myBoard = myDict[pieceIndex.ALL_LOCATIONS];
+            myBoard = new BitboardLayer(myDict[pieceIndex.ALL_LOCATIONS]);
 
-            for (int i = 0; i < 64; i++){
-				if (trueAtIndex(possibleMoves, i)){	//for each valid move, use a test allLocations to see if it's moving into check
-                    ulong kingPos = myDict[pieceIndex.KING];
-                    if (isKingMove) kingPos = (ulong)1 << (63 - i);
+            foreach (int i in possibleMoves.getTrueIndicies()){	//for each valid move, use a test allLocations to see if it's moving into check
+                    BitboardLayer kingPos = new BitboardLayer(myDict[pieceIndex.KING]);
+                    if (isKingMove) kingPos.setLayerData((ulong)1 << (63 - i));
                     ChessBoard cboard = new ChessBoard(this);
                     cboard.movePiece(isWhite, beginIndex, i);
-                    ulong newAttackedSquares = cboard.getAttackedSquares(!isWhite);
-                    if ((kingPos & newAttackedSquares) > 0) retVal = setAtIndex(retVal, i, false);
+                    BitboardLayer newAttackedSquares = cboard.getAttackedSquares(!isWhite);
+                    if ((kingPos.getLayerData() & newAttackedSquares.getLayerData()) > 0) retVal.setAtIndex(i, false);
                     myDict[pieceIndex.ALL_LOCATIONS] = myBoard;
-				}
 			}
 			return retVal;
 		}		               
 		
 		//POST: gives squares attacked by isWhite given the current configuration
-		public ulong getAttackedSquares(bool isWhite){
-			ulong newAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
-			ulong retVal = 0;
-			ulong[] myDict = isWhite ? white : black;
-			ulong myPcs = myDict[pieceIndex.ALL_LOCATIONS];
-			for (int i = 0; i < 64; i++){
-				if (trueAtIndex(myPcs, i)){
-					retVal |= getValidMoves(isWhite, i, newAllPos, false, true);
-				}
+		public BitboardLayer getAttackedSquares(bool isWhite){
+			BitboardLayer newAllPos = isWhite ? black[pieceIndex.ALL_LOCATIONS] : white[pieceIndex.ALL_LOCATIONS];
+			BitboardLayer retVal = new BitboardLayer();
+			BitboardLayer[] myDict = isWhite ? white : black;
+			BitboardLayer myPcs = new BitboardLayer(myDict[pieceIndex.ALL_LOCATIONS]);
+			foreach (int i in myPcs.getTrueIndicies()) { 
+                retVal.setLayerData(retVal.getLayerData() | getValidMoves(isWhite, i, newAllPos, false, true).getLayerData());
 			}
 			return retVal;
 		}
 		
-		bool checkCollision(int beginIndex, int endIndex, ulong myPcs, ulong enemyPcs, bool attackedSq){
+		bool checkCollision(int beginIndex, int endIndex, BitboardLayer myPcs, BitboardLayer enemyPcs, bool attackedSq){
 			int dir = beginIndex < endIndex ? 1 : -1;
 			if ((beginIndex - endIndex) % 8 == 0){ //moving vertically
 				return extendCurrPath(beginIndex, endIndex, myPcs, enemyPcs, 8, dir, attackedSq);
 			} if (beginIndex / 8 == endIndex / 8) { //moving horizontally
 				while(dir * beginIndex < dir * endIndex && beginIndex / 8 == endIndex / 8){
 					beginIndex += dir;
-					if (trueAtIndex(myPcs, beginIndex)) {
+					if (myPcs.trueAtIndex(beginIndex)) {
 						if (attackedSq && beginIndex == endIndex) return false;
 						return true;
-					} if (trueAtIndex(enemyPcs, beginIndex)){
+					} if (enemyPcs.trueAtIndex(beginIndex)){
 						if (beginIndex != endIndex) return true;
 						return false;
 					}
@@ -441,38 +446,36 @@ namespace Chess
 			return false;
 		}
 		
-		bool extendCurrPath(int beginIndex, int endIndex, ulong myPcs, ulong enemyPcs, int extend, int dir, bool attackedSq){
+		bool extendCurrPath(int beginIndex, int endIndex, BitboardLayer myPcs, BitboardLayer enemyPcs, int extend, int dir, bool attackedSq){
 			while(dir * beginIndex < dir * endIndex && (beginIndex >= 0 && beginIndex <= 63)){
 					beginIndex += dir * extend;
-					if (trueAtIndex(myPcs, beginIndex)) {
+					if (myPcs.trueAtIndex(beginIndex)) {
 						if (attackedSq && beginIndex == endIndex) return false;
 						return true;
-					} if (trueAtIndex(enemyPcs, beginIndex)){
+					} if (enemyPcs.trueAtIndex(beginIndex)){
 						if (beginIndex != endIndex) return true;
 						return false;
 					}
 				}
 			return false;
 		}
+
+        public bool isInCheck(bool isWhite)
+        {
+            BitboardLayer[] dict = isWhite ? white : black;
+            BitboardLayer[] enemyDict = isWhite ? black : white;
+            if ((enemyDict[pieceIndex.ATTACKED_SQUARES].getLayerData() & dict[pieceIndex.KING].getLayerData()) > 0) return true;
+            return false;
+        }
 		
 		public bool checkForMate(bool isWhite){ //checks to see if isWhite has checkmate
-			ulong[] dict = isWhite ? black : white;
-			for (int i = 0; i < 64; i++){
-				if (trueAtIndex(dict[pieceIndex.ALL_LOCATIONS], i)){
-					if (getValidMoves(!isWhite, i) != 0uL) return false;
-				}
+            BitboardLayer[] dict = isWhite ? white : black;
+			BitboardLayer[] enemyDict = isWhite ? black : white;
+			foreach (int i in enemyDict[pieceIndex.ALL_LOCATIONS].getTrueIndicies())
+            {
+                if (getValidMoves(!isWhite, i).getLayerData() != 0uL) return false;
 			}
-			return true;
-		}
-		
-		public static ulong setAtIndex(ulong state, int index, bool isTrue){
-			if (isTrue) return state | (ulong)(1uL << (63 - index));
-			return state & ~((ulong)(1uL << 63 - index));
-		}
-		
-		public static bool trueAtIndex(ulong t, int i){ //easier to think of the other way
-			return (t & (ulong)(1uL << (63 - i))) > 0;
-			//invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
+			return (dict[pieceIndex.KING].getLayerData() & enemyDict[pieceIndex.ATTACKED_SQUARES].getLayerData()) > 0;
 		}
 }
 }

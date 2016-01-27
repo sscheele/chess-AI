@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 
 namespace Chess
@@ -167,10 +168,11 @@ namespace Chess
             getAllLocations(false);
             white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
             black[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(false).getLayerData());
-            moveList.RemoveAt(moveList.Count - 1);
+            Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move undone: [" + moveList[moveList.Count - 1][0] + ", " + moveList[moveList.Count - 1][1] + "]");
+            moveList.RemoveAt(moveList.Count - 1);            
         }
 		
-		public void movePiece(bool isWhite, int begin, int end){
+		public void movePiece(bool isWhite, int begin, int end, bool isTest = false){
             int captureLayer = -1;
             int promotionLayer = -1;
 			BitboardLayer[] dict = isWhite ? white : black;
@@ -219,7 +221,7 @@ namespace Chess
                         if (end == enemy_ep) enemyDict[pieceIndex.PAWN].setAtIndex(enemy_ep - dir * 8, false);
 
                         //promotion
-                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite)) promotionLayer = promotePiece(end, isWhite);
+                        if (!isTest && ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite))) promotionLayer = promotePiece(end, isWhite);
                     } else {
                         if (isWhite) white_ep = -1;
                         else black_ep = -1;
@@ -229,8 +231,11 @@ namespace Chess
             moveList.Add(new int[] { begin, end, captureLayer, promotionLayer });
             moveNum++;
             getAllLocations(isWhite);
+            if (captureLayer != -1) getAllLocations(!isWhite);
             dict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(isWhite).getLayerData());
-		}
+            enemyDict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(!isWhite).getLayerData());
+            Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move made: " + "[" + begin + ", " + end + "]");
+        }
 
         int promotePiece(int index, bool isWhite)
         {
@@ -401,7 +406,7 @@ namespace Chess
                     BitboardLayer kingPos = new BitboardLayer(myDict[pieceIndex.KING]);
                     if (isKingMove) kingPos.setLayerData((ulong)1 << (63 - i));
                     ChessBoard cboard = new ChessBoard(this);
-                    cboard.movePiece(isWhite, beginIndex, i);
+                    cboard.movePiece(isWhite, beginIndex, i, true);
                     BitboardLayer newAttackedSquares = cboard.getAttackedSquares(!isWhite);
                     if ((kingPos.getLayerData() & newAttackedSquares.getLayerData()) > 0) retVal.setAtIndex(i, false);
                     myDict[pieceIndex.ALL_LOCATIONS] = myBoard;

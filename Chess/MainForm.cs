@@ -169,13 +169,14 @@ namespace Chess
                     if ((gameMode & isPlayerIndex) > 0) //is an AI move
                     {
                         int[] aiMove;
-                        if (isWhiteMove) aiMove = gameAIs[1].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], 0)[0];
-                        else aiMove = gameAIs[0].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], 0)[0];
+                        if (isWhiteMove) aiMove = gameAIs[1].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], -1)[0];
+                        else aiMove = gameAIs[0].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], -1)[0];
                         cb.movePiece(isWhiteMove, aiMove[0], aiMove[1]);
                         isWhiteMove = !isWhiteMove;
                     }
                 }
                 paintTiles();
+                GC.Collect();
             }
 		}
 		

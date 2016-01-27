@@ -42,13 +42,22 @@ namespace Chess
 		}	
 		
 
-        BitboardLayer[] getPossibleMoves(ChessBoard c)
+        BitboardLayer[] getPossibleMoves(ChessBoard c, bool isMyMove)
         {
             BitboardLayer[] retVal = new BitboardLayer[64];
-            BitboardLayer[] dict = c.getDict(isWhite);
-            BitboardLayer[] enemyDict = c.getDict(!isWhite);
-            foreach (int i in dict[pieceIndex.ALL_LOCATIONS].getTrueIndicies()) { 
-                retVal[i] = c.getValidMoves(isWhite, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
+            bool isWhiteMove = isWhite ^ !isMyMove;
+            BitboardLayer[] dict = c.getDict(isWhiteMove);
+            BitboardLayer[] enemyDict = c.getDict(!isWhiteMove);
+
+            int[] allLocs = dict[pieceIndex.ALL_LOCATIONS].getTrueIndicies();
+            for (int i = 0; i < 64; i++)
+            {
+                if (Array.IndexOf(allLocs, i) != -1){
+                    retVal[i] = c.getValidMoves(isWhiteMove, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
+                } else
+                {
+                    retVal[i] = new BitboardLayer();
+                }
             }
             return retVal;
         }
@@ -56,31 +65,21 @@ namespace Chess
 
         public int[][] alphaBeta(int depth, int alpha, int beta, int[] move, int player)
         {
-            BitboardLayer[] possibleMoves = getPossibleMoves(c);
-            //ulong[] possibleMoves = new ulong[64];
+            BitboardLayer[] possibleMoves = getPossibleMoves(c, player == -1);
 
-            int numMoves = 0;
-            for (int i = 0; i < 64; i++)
-            {
-                if (possibleMoves[i].getLayerData() > 0) numMoves++; //need this for rating later
+            int numMoves = 0; 
+            foreach(BitboardLayer i in possibleMoves) { 
+                numMoves += i.getNumOnes(); //need this for rating later
             }
-            /*
-            int lim = 0;
-            for (int i = 0; i < lim; i++)
-            {
-                possibleMoves[i] = (ulong)1 << 27;
-            }
-            */
-            //bool hasValidMoves = true;
-            if (depth == 0 || numMoves == 0) return new int[][] { move, new int[] { /*player */ Rating.rating(isWhite, c, numMoves, searchDepth) } };
+            if (depth == 0 || numMoves == 0) return new int[][] { move, new int[] { Rating.rating((player == -1) ^ isWhite, c, numMoves, searchDepth) } };
             //TODO: sort for alphabeta
             player *= -1;
             for (int i = 0; i < 64; i++)
             {
                 foreach (int j in possibleMoves[i].getTrueIndicies()) { 
-                    c.movePiece(player == -1 ^ isWhite, i, j);
+                    c.movePiece((player == -1) ^ isWhite, i, j, true);
                     int[][] retVal = alphaBeta(depth - 1, alpha, beta, new int[] { i, j }, player);
-                    c.undoMove(player == -1 ^ isWhite);
+                    c.undoMove((player == -1) ^ isWhite);
                     if (player == -1)
                     {
                         if (retVal[1][0] <= beta)
@@ -99,6 +98,7 @@ namespace Chess
                     }
                     if (alpha >= beta)
                     {
+                        Debug.Print("Branch pruned at level " + (4 - depth) + " because alpha (" + alpha + ") >= beta (" + beta + ")");
                         if (player == -1) return new int[][] { move, new int[] { beta } };
                         else return new int[][] { move, new int[] { alpha } };
                     }
@@ -171,7 +171,8 @@ namespace Chess
 					if (movesSearched % 2 == 0 ^ isTheoretical){ //means we're searching our move. XOR by theoretical means that we search even moves and our opponent searches odd
 						//if (movesSearched == 0){
 						if (rootMove != null){
-							newboards = movePiece(myTBoard, enemyTBoard, rootMove[0], rootMove[1]);
+							newboards = 
+                           iece(myTBoard, enemyTBoard, rootMove[0], rootMove[1]);
                             Debug.Print("Making theoretical move: " + rootMove[0] + " to " + rootMove[1]);
 							/*} else {
 								int[] move = getAIMove(myTBoard, enemyTBoard, movesSearched + 1, ply, currValue, null);

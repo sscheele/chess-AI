@@ -76,6 +76,7 @@ namespace Chess
             {
                 foreach (int j in possibleMoves[i].getTrueIndicies()) { 
                     cb.movePiece(isWhite, i, j, true);
+                    if (depth == searchDepth) Debug.Print("Top level node: searching move [" + i + ", " + j + "]");
                     int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, new int[] { i, j }, player);
                     cb.undoMove((player == -1) ^ isWhite);
                     if (player == -1)

@@ -176,9 +176,7 @@ namespace Chess
             getAllLocations(false);
             white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
             black[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(false).getLayerData());
-            Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move undone: [" + moveList[moveList.Count - 1][0] + ", " + moveList[moveList.Count - 1][1] + "]");
             moveList.RemoveAt(moveList.Count - 1);
-            if (black[pieceIndex.PAWN].trueAtIndex(11) != pawnIsOn11) Debug.Print("undoMove() - occupied status of index 11 changed (is now " + (!black[pieceIndex.PAWN].trueAtIndex(11) ? "un" : "") + "occupied.)");
         }
 		
 		public void movePiece(bool isWhite, int begin, int end, bool isTest = false){
@@ -244,8 +242,6 @@ namespace Chess
             if (captureLayer != -1) getAllLocations(!isWhite);
             dict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(isWhite).getLayerData());
             enemyDict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(!isWhite).getLayerData());
-            Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move made: " + "[" + begin + ", " + end + "]");
-            if (black[pieceIndex.PAWN].trueAtIndex(11) != pawnIsOn11) Debug.Print("makeMove() - occupied status of index 11 changed (is now " + (!black[pieceIndex.PAWN].trueAtIndex(11) ? "un" : "") + "occupied.)");
         }
 
         int promotePiece(int index, bool isWhite)

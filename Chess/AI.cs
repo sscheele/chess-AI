@@ -55,8 +55,10 @@ namespace Chess
         public int[][] getAIMove(ChessBoard cb, bool isWhite, int depth)
         {
             searchDepth = depth;
-            ChessBoard tBoard = new ChessBoard(cb);
-            int[][] retVal = alphaBeta(tBoard, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], -1);
+            //ChessBoard tBoard = new ChessBoard(cb);
+            //int[][] retVal = alphaBeta(tBoard, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], -1);
+            int[][] retVal = alphaBeta(cb, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], -1);
+            Debug.Print("Alphabeta is done.");
             return retVal;
         }
         
@@ -97,7 +99,6 @@ namespace Chess
                     }
                     if (alpha >= beta)
                     {
-                        Debug.Print("Branch pruned at level " + (4 - depth) + " because alpha (" + alpha + ") >= beta (" + beta + ")");
                         if (player == -1) return new int[][] { move, new int[] { beta } };
                         else return new int[][] { move, new int[] { alpha } };
                     }

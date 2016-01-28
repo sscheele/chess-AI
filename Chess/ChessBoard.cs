@@ -14,7 +14,9 @@ namespace Chess
         List<int[]> moveList = new List<int[]>();
         int moveNum = 0;
 
-		BitboardLayer[] white = new BitboardLayer[10];
+        int[] hitCount = new int[10];
+
+        BitboardLayer[] white = new BitboardLayer[10];
 		BitboardLayer[] black = new BitboardLayer[10];
         int black_ep = -1;
         int white_ep = -1;
@@ -135,6 +137,7 @@ namespace Chess
 
         public void undoMove(bool isWhite)
         {
+            bool pawnIsOn11 = black[pieceIndex.PAWN].trueAtIndex(11);
             BitboardLayer[] dict = isWhite ? white : black;
             BitboardLayer[] enemyDict = isWhite ? black : white;
             int[] lastMove = moveList[moveList.Count - 1];
@@ -147,6 +150,7 @@ namespace Chess
                     dict[i].setAtIndex(lastMove[1], false);
                 }
             }
+
             if (dict[pieceIndex.KING].trueAtIndex(lastMove[1]) && Math.Abs(lastMove[0] - lastMove[1]) == 2)
             {
                 //castling right, aka kingside
@@ -164,15 +168,21 @@ namespace Chess
                 //pieces are removed from promotions
                 if (lastMove[3] >= 0) dict[lastMove[3]].setAtIndex(lastMove[1], false);
             }
+
+            white_ep = lastMove[4];
+            black_ep = lastMove[5];
+
             getAllLocations(true);
             getAllLocations(false);
             white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
             black[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(false).getLayerData());
             Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move undone: [" + moveList[moveList.Count - 1][0] + ", " + moveList[moveList.Count - 1][1] + "]");
-            moveList.RemoveAt(moveList.Count - 1);            
+            moveList.RemoveAt(moveList.Count - 1);
+            if (black[pieceIndex.PAWN].trueAtIndex(11) != pawnIsOn11) Debug.Print("undoMove() - occupied status of index 11 changed (is now " + (!black[pieceIndex.PAWN].trueAtIndex(11) ? "un" : "") + "occupied.)");
         }
 		
 		public void movePiece(bool isWhite, int begin, int end, bool isTest = false){
+            bool pawnIsOn11 = black[pieceIndex.PAWN].trueAtIndex(11);
             int captureLayer = -1;
             int promotionLayer = -1;
 			BitboardLayer[] dict = isWhite ? white : black;
@@ -228,13 +238,14 @@ namespace Chess
                     }
                 }
             }
-            moveList.Add(new int[] { begin, end, captureLayer, promotionLayer });
+            moveList.Add(new int[] { begin, end, captureLayer, promotionLayer, white_ep, black_ep });
             moveNum++;
             getAllLocations(isWhite);
             if (captureLayer != -1) getAllLocations(!isWhite);
             dict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(isWhite).getLayerData());
             enemyDict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(!isWhite).getLayerData());
             Debug.Print(((isWhite) ? "White - " : "Black - ") + "Move made: " + "[" + begin + ", " + end + "]");
+            if (black[pieceIndex.PAWN].trueAtIndex(11) != pawnIsOn11) Debug.Print("makeMove() - occupied status of index 11 changed (is now " + (!black[pieceIndex.PAWN].trueAtIndex(11) ? "un" : "") + "occupied.)");
         }
 
         int promotePiece(int index, bool isWhite)
@@ -282,7 +293,7 @@ namespace Chess
 							int moveIndex = index + (direction * 8);
 							//move one in dir
 							if (moveIndex >= 0 && moveIndex <= 63 && 
-							    !checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) &&
+							    !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) &&
                                 !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							
 							//captures
@@ -294,9 +305,10 @@ namespace Chess
                                 enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex + 1)) retVal.setAtIndex(moveIndex + 1, true);
 							
 							//move two in dir
-							if (index / 8 == pawnFile){
+							if (index / 8 == pawnFile && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex))
+                            {
 								moveIndex += direction * 8;
-								if (!checkCollision(index, moveIndex, newAllPos, enemyAllPos, fromAttackedSq) && !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
+								if (moveIndex >= 0 && moveIndex <= 63 && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							}
 
                             //en passant captures

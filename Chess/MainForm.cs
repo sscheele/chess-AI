@@ -62,7 +62,6 @@ namespace Chess
 
             if ((gameMode & 1) > 0) gameAIs[1] = new AI(c.getBoard(), true, defaultSearchDepth);
             if ((gameMode & 2) > 0) gameAIs[0] = new AI(c.getBoard(), false, defaultSearchDepth);
-
             isWhiteMove = true;
             paintTiles();
         }
@@ -99,13 +98,29 @@ namespace Chess
                 int backgroundIndex = baseTiles[i] ? 1 : 0;
                 Image imgBackground = backgrounds[backgroundIndex];
                 if (overlays[i] < pieceOverlays.Length || isValid) {
-                    if (overlays[i] < pieceOverlays.Length) imgOverlay = pieceOverlays[overlays[i]];
-                    Image img = new Bitmap(imgBackground.Width, imgBackground.Height);
-                    using (Graphics gr = Graphics.FromImage(img)) {
-                        gr.DrawImage(imgBackground, new Point(0, 0));
-                        gr.DrawImage(imgOverlay, new Point(0, 0));
+                    if (overlays[i] < pieceOverlays.Length ^ isValid)
+                    {
+                        if (overlays[i] < pieceOverlays.Length) imgOverlay = pieceOverlays[overlays[i]];
+                        Image img = new Bitmap(imgBackground.Width, imgBackground.Height);
+                        using (Graphics gr = Graphics.FromImage(img))
+                        {
+                            gr.DrawImage(imgBackground, new Point(0, 0));
+                            gr.DrawImage(imgOverlay, new Point(0, 0));
+                        }
+                        allTiles[i].Image = img;
+                    } else
+                    {
+                        Image imgPieceOverlay = pieceOverlays[overlays[i]];
+                        Image finalImg = new Bitmap(imgBackground.Width, imgBackground.Height);
+
+                        using (Graphics gr = Graphics.FromImage(finalImg))
+                        {
+                            gr.DrawImage(imgBackground, new Point(0, 0));
+                            gr.DrawImage(imgPieceOverlay, new Point(0, 0));
+                            gr.DrawImage(imgOverlay, new Point(0, 0));
+                        }
+                        allTiles[i].Image = finalImg;
                     }
-                    allTiles[i].Image = img;
                 } else
                 {
                     allTiles[i].Image = imgBackground;
@@ -164,13 +179,18 @@ namespace Chess
                     isWhiteMove = !isWhiteMove;
                     overlays = new int[64];
                     c.genOverlay();
+                    
+                    paintTiles();
+                    GC.Collect();
 
                     isPlayerIndex = isWhiteMove ? 1 : 2;
                     if ((gameMode & isPlayerIndex) > 0) //is an AI move
                     {
                         int[] aiMove;
-                        if (isWhiteMove) aiMove = gameAIs[1].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], -1)[0];
-                        else aiMove = gameAIs[0].alphaBeta(defaultSearchDepth, Int32.MinValue, Int32.MaxValue, new int[0], -1)[0];
+                        //if (isWhiteMove) aiMove = gameAIs[1].getAIMove(cb, isWhiteMove, defaultSearchDepth)[0];
+                        //else aiMove = gameAIs[0].getAIMove(cb, isWhiteMove, defaultSearchDepth)[0];
+                        if (isWhiteMove) aiMove = gameAIs[1].alphaBeta(cb, isWhiteMove, defaultSearchDepth, int.MinValue, int.MaxValue, new int[0], -1)[0];
+                        else aiMove = gameAIs[0].alphaBeta(cb, isWhiteMove, defaultSearchDepth, int.MinValue, int.MaxValue, new int[0], -1)[0];
                         cb.movePiece(isWhiteMove, aiMove[0], aiMove[1]);
                         isWhiteMove = !isWhiteMove;
                     }

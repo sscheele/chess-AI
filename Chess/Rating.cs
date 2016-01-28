@@ -10,13 +10,15 @@ namespace Chess
     {
         public static int[] pieceVals = new int[] { 100, 500, 300, 300, 900, 20000 };
         //attribute to http://chessprogramming.wikispaces.com/Simplified+evaluation+function
-        static int[] pawnBoard= new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0 };
-        static int[] rookBoard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0 };
-        static int[] knightBoard = new int[] { -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30, -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20, 0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50 };
-        static int[] bishopBoard = new int[] { -20, -10, -10, -10, -10, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 10, 10, 10, 10, 0, -10, -10, 10, 10, 10, 10, 10, 10, -10, -10, 5, 0, 0, 0, 0, 5, -10, -20, -10, -10, -10, -10, -10, -10, -20 };
-        static int[] queenBoard = new int[] { -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5, 5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20, -10, -10, -5, -5, -10, -10, -20 };
-        static int[] kingMidBoard = new int[] { -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20, -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20 };
-        static int[] kingEndBoard = new int[] { -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50 };
+        static int[][] positionValues = new int[][]{
+            new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0 },
+            new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0 },
+            new int[] { -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30, -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20, 0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50 },
+            new int[] { -20, -10, -10, -10, -10, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 10, 10, 10, 10, 0, -10, -10, 10, 10, 10, 10, 10, 10, -10, -10, 5, 0, 0, 0, 0, 5, -10, -20, -10, -10, -10, -10, -10, -10, -20 },
+            new int[] { -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5, 5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20, -10, -10, -5, -5, -10, -10, -20 },
+            new int[] { -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20, -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20 },
+            new int[] { -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50 }
+        };
 
         public static int rating(bool isWhite, ChessBoard c, int possibleMoves, int depth)
         {
@@ -25,20 +27,60 @@ namespace Chess
             counter += rateAttack(isWhite, c);
             counter += material;
             counter += rateMoveability(isWhite, c, possibleMoves, depth, material);
-            counter += ratePositional(isWhite, c);
+            counter += ratePositional(isWhite, c, material);
 
             isWhite = !isWhite;
 
+            material = rateMaterial(isWhite, c);
             counter -= rateAttack(isWhite, c);
-            counter -= rateMaterial(isWhite, c);
+            counter -= material;
             counter -= rateMoveability(isWhite, c, possibleMoves, depth, material);
-            counter -= ratePositional(isWhite, c);
+            counter -= ratePositional(isWhite, c, material);
             return -(counter+depth*50);
         }
 
         public static int rateAttack(bool isWhite, ChessBoard c)
         {
-            return 0;
+            BitboardLayer[] dict = c.getDict(isWhite);
+            int counter = 0;
+            for (int j = 0; j <= pieceIndex.KING; j++) //don't include king
+            {
+                foreach (int i in dict[j].getTrueIndicies())
+                {
+                    switch (j)
+                    {
+                        case pieceIndex.PAWN:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 64;
+                            break;
+                        case pieceIndex.ROOK:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 500;
+                            break;
+                        case pieceIndex.KNIGHT:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 300;
+                            break;
+                        case pieceIndex.BISHOP:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 300;
+                            break;
+                        case pieceIndex.QUEEN:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 900;
+                            break;
+                        case pieceIndex.KING:
+                            if (isUnderAttack(isWhite, c, i)) counter -= 200;
+                            break;
+                    }
+                }
+            }
+            return counter/2;
+        }
+
+        public static bool isUnderAttack(bool isWhite, ChessBoard c, int index)
+        {
+            BitboardLayer[] enemyDict = c.getDict(!isWhite);
+            foreach (int i in enemyDict[pieceIndex.ALL_LOCATIONS].getTrueIndicies())
+            {
+                if (c.getValidMoves(isWhite, i).trueAtIndex(index)) return true;
+            }
+            return false;
         }
 
         public static int rateMaterial(bool isWhite, ChessBoard c)
@@ -67,12 +109,26 @@ namespace Chess
                 if (c.isInCheck(isWhite)) counter -= 200000 * depth;
                 else counter -= 150000 * depth;
             }
-            return 0;
+            return counter;
         }
 
-        public static int ratePositional(bool isWhite, ChessBoard c)
+        public static int ratePositional(bool isWhite, ChessBoard c, int material)
         {
-            return 0;
+            int counter = 0;
+            BitboardLayer[] dict = c.getDict(isWhite);
+            for (int j = 0; j <= pieceIndex.KING; j++)
+            {
+                foreach (int i in dict[j].getTrueIndicies())
+                {
+                    counter += positionValues[j][i];
+                    if (j == pieceIndex.KING)
+                    {
+                        if (material >= 1750) counter += positionValues[j][i];
+                        else counter += positionValues[j + 1][i];
+                    }
+                }
+            }
+            return counter;
         }
 
         public static ulong setAtIndex(ulong state, int index, bool isTrue)

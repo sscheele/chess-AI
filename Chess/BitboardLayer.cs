@@ -12,13 +12,11 @@ namespace Chess
         //many of the advantages of using the bitboard
         ulong layerData;
         List<int> trueIndicies;
-        int numOnes;
 
         public BitboardLayer()
         {
             layerData = 0uL;
             trueIndicies = new List<int>();
-            numOnes = 0;
         }
 
         public BitboardLayer(ulong layerData)
@@ -32,20 +30,14 @@ namespace Chess
             layerData = b.getLayerData();
             trueIndicies = new List<int>();
             foreach (int i in b.getTrueIndicies()) { trueIndicies.Add(i); }
-            numOnes = b.getNumOnes();
         }
 
         void initializeMetadata()
         {
             trueIndicies = new List<int>();
-            numOnes = 0;
             for (int i = 0; i < 64; i++)
             {
-                if (trueAtIndex(i))
-                {
-                    trueIndicies.Add(i);
-                    numOnes++;
-                }
+                if (trueAtIndex(i)) trueIndicies.Add(i);
             }
         }
 
@@ -54,20 +46,12 @@ namespace Chess
             if (isTrue)
             {
                 layerData |= (ulong)(1uL << (63 - index));
-                if (!trueIndicies.Contains(index))
-                {
-                    trueIndicies.Add(index);
-                    numOnes++;
-                }
+                if (!trueIndicies.Contains(index)) trueIndicies.Add(index);
             }
             else
             {
                 layerData &= ~((ulong)(1uL << 63 - index));
-                if (trueIndicies.Contains(index))
-                {
-                    trueIndicies.Remove(index);
-                    numOnes--;
-                }
+                if (trueIndicies.Contains(index)) trueIndicies.Remove(index);
             }
             return layerData;
         }
@@ -82,7 +66,7 @@ namespace Chess
 
         public int[] getTrueIndicies() { return trueIndicies.ToArray(); }
 
-        public int getNumOnes() { return numOnes; }
+        public int getNumOnes() { return trueIndicies.Count; }
 
         public void setLayerData(ulong d) //not really necessary, but prettier in code than calling the constructor all over again
         {

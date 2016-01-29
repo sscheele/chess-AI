@@ -52,6 +52,29 @@ namespace Chess
             return retVal;
         }
 
+        public string displayBoard(ChessBoard c)
+        {
+            //for debugging purposes
+            //capital letters are white, n's are knights
+            char[] whiteLetters = new char[] { Convert.ToChar("P"), Convert.ToChar("R"), Convert.ToChar("N"), Convert.ToChar("B"), Convert.ToChar("Q"), Convert.ToChar("K") };
+            char[] blackLetters = new char[] { Convert.ToChar("p"), Convert.ToChar("r"), Convert.ToChar("n"), Convert.ToChar("b"), Convert.ToChar("q"), Convert.ToChar("k") };
+
+            char[] retVal = new char[64];
+            for (int i = 0; i < 64; i++) retVal[i] = Convert.ToChar("+");
+            BitboardLayer[] white = c.getDict(true);
+            BitboardLayer[] black = c.getDict(false);
+            for (int i = 0; i <= pieceIndex.KING; i++){
+                foreach (int j in white[i].getTrueIndicies()) retVal[j] = whiteLetters[i];
+                foreach (int j in black[i].getTrueIndicies()) retVal[j] = blackLetters[i];
+            }
+            string s = "";
+            for (int i = 0; i < 64; i++){
+                s += retVal[i];
+                if (i % 8 == 7) s += "\n";
+            }
+            return s;
+        }
+
         public int[][] getAIMove(ChessBoard cb, bool isWhite, int depth)
         {
             searchDepth = depth;
@@ -77,8 +100,10 @@ namespace Chess
             for (int i = 0; i < 64; i++)
             {
                 foreach (int j in possibleMoves[i].getTrueIndicies()) { 
-                    cb.movePiece(isWhite, i, j, true);
-                    if (depth == searchDepth) Debug.Print("Top level node: searching move [" + i + ", " + j + "]");
+                    cb.movePiece((player == -1) ^ isWhite, i, j, true);
+                    if (depth == searchDepth){
+                        Debug.Print("Top level node: searching move [" + i + ", " + j + "]");
+                    }
                     int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, new int[] { i, j }, player);
                     cb.undoMove((player == -1) ^ isWhite);
                     if (player == -1)

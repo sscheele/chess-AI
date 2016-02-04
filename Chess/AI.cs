@@ -34,20 +34,17 @@ namespace Chess
 		}
 		
 
-        BitboardLayer[] getPossibleMoves(ChessBoard c, bool isWhite)
+        List<int[]> getPossibleMoves(ChessBoard c, bool isWhite)
         {
-            BitboardLayer[] retVal = new BitboardLayer[64];
+            var retVal = new List<int[]>();
             BitboardLayer[] dict = c.getDict(isWhite);
             BitboardLayer[] enemyDict = c.getDict(!isWhite);
 
-            int[] allLocs = dict[pieceIndex.ALL_LOCATIONS].getTrueIndicies();
             for (int i = 0; i < 64; i++)
             {
-                if (Array.IndexOf(allLocs, i) != -1){
-                    retVal[i] = c.getValidMoves(isWhite, i, enemyDict[pieceIndex.ALL_LOCATIONS], true, false);
-                } else
-                {
-                    retVal[i] = new BitboardLayer();
+                if (dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(i)){
+                    BitboardLayer pieceMoves = c.getValidMoves(isWhite, i);
+                    foreach (int j in pieceMoves.getTrueIndicies()) retVal.Add(new int[] { i, j });
                 }
             }
             return retVal;
@@ -101,6 +98,42 @@ namespace Chess
             Debug.Print("Alphabeta is done.");
             return retVal;
         }
+
+        public List<int[]> sortAlphaBeta(ChessBoard cb, bool isWhite, List<int[]> possibleMoves)
+        {
+            List<int[]> retVal = new List<int[]>();
+            List<int> valueSet = new List<int>();
+            for (int i = 0; i < possibleMoves.Count; i++)
+            {
+                int[] currMove = possibleMoves[i];
+                cb.movePiece(isWhite, currMove[0], currMove[1], true);
+                valueSet.Add(Rating.rating(isWhite, cb, possibleMoves.Count, searchDepth));
+                cb.undoMove(isWhite);
+            }
+            while (valueSet.Count > 0)
+            {
+                int index = indexOfMax(valueSet);
+                retVal.Add(possibleMoves[index]);
+                possibleMoves.RemoveAt(index);
+                valueSet.RemoveAt(index);
+            }
+            return retVal;
+        }
+
+        int indexOfMax(List<int> l)
+        {
+            int retVal = 0;
+            int currMax = l[0];
+            for (int i = 0; i < l.Count; i++)
+            {
+                if (l[i] > currMax)
+                {
+                    retVal = i;
+                    currMax = l[i];
+                }
+            }
+            return retVal;
+        }
         
 
         public int[][] alphaBeta(ChessBoard cb, bool isWhite, int depth, int alpha, int beta, int[] move, int player)
@@ -108,31 +141,26 @@ namespace Chess
             numIterations++;
             //GOAL: minimize beta (starts at infinity) and maximize alpha (starts at neg. infinity)
             bool isWhiteMove = isWhite ^ (player == 1);
-            BitboardLayer[] possibleMoves = getPossibleMoves(cb, isWhiteMove);
+            List<int[]> possibleMoves = depth > 1 ? sortAlphaBeta(cb, isWhiteMove, getPossibleMoves(cb, isWhiteMove)) : getPossibleMoves(cb, isWhiteMove);
 
-            int numMoves = 0; 
-            foreach(BitboardLayer i in possibleMoves) { 
-                numMoves += i.getNumOnes(); //need this for rating later
-            }
+            int numMoves = possibleMoves.Count;
 
             if (depth == 0 || numMoves == 0)
             {
-                int i = -1 * player * Rating.rating(isWhite, cb, numMoves, searchDepth);
-                Debug.Print("Found rating of: " + i);
+                //int i = -1 * player * Rating.rating(isWhite, cb, numMoves, searchDepth);
+                int i = Rating.rating(isWhite, cb, numMoves, searchDepth);
+                //Debug.Print("Found rating of: " + i);
                 return new int[][] { move, new int[] { i } };
             }
             //TODO: sort for alphabeta
             player *= -1;
-            isWhiteMove = isWhite ^ (player == -1);
-            for (int i = 0; i < 64; i++)
-            {
-                foreach (int j in possibleMoves[i].getTrueIndicies()) {
+            foreach (int[] currMove in possibleMoves) { 
                     if (depth == searchDepth)
                     {
-                        Debug.Print("Currently searching move: [" + i + ", " + j + "] (alpha = " + alpha + ", beta = " + beta + ")");
+                        Debug.Print("Currently searching move: [" + currMove[0] + ", " + currMove[1] + "] (alpha = " + alpha + ", beta = " + beta + ")");
                     }
-                    cb.movePiece(isWhiteMove, i, j, true);
-                    int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, new int[] { i, j }, player);
+                    cb.movePiece(isWhiteMove, currMove[0], currMove[1], true);
+                    int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, currMove, player);
                     cb.undoMove(isWhiteMove);
                     /*
                     if (!matchesMoveList(cb))
@@ -162,7 +190,6 @@ namespace Chess
                         else return new int[][] { move, new int[] { alpha } };
                     }
                 }
-            }
             if (player == -1) return new int[][] { move, new int[] { beta } };
             else return new int[][] { move, new int[] { alpha } };
         }

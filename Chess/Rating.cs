@@ -39,6 +39,24 @@ namespace Chess
             return counter+depth*50;
         }
 
+        public static int quickRating(bool isWhite, ChessBoard c, int possibleMoves, int depth)
+        {
+            //designed for sorting for alphabeta
+            //for these purposes, we care less about moves that increase moveability or attack
+            //hopefully
+            int counter = 0;
+            int material = rateMaterial(isWhite, c);
+            counter += material;
+            counter += ratePositional(isWhite, c, material);
+
+            isWhite = !isWhite;
+
+            material = rateMaterial(isWhite, c);
+            counter -= material;
+            counter -= ratePositional(isWhite, c, material);
+            return counter;
+        }
+
         public static int rateAttack(bool isWhite, ChessBoard c)
         {
             BitboardLayer[] dict = c.getDict(isWhite);

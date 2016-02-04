@@ -36,51 +36,45 @@ namespace Chess
             counter -= material;
             counter -= rateMoveability(isWhite, c, possibleMoves, depth, material);
             counter -= ratePositional(isWhite, c, material);
-            return -(counter+depth*50);
+            return counter+depth*50;
         }
 
         public static int rateAttack(bool isWhite, ChessBoard c)
         {
             BitboardLayer[] dict = c.getDict(isWhite);
+            BitboardLayer attackedSqs = dict[pieceIndex.ATTACKED_SQUARES];
             int counter = 0;
             for (int j = 0; j <= pieceIndex.KING; j++) //don't include king
             {
                 foreach (int i in dict[j].getTrueIndicies())
                 {
-                    switch (j)
+                    if (attackedSqs.trueAtIndex(i))
                     {
-                        case pieceIndex.PAWN:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 64;
-                            break;
-                        case pieceIndex.ROOK:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 500;
-                            break;
-                        case pieceIndex.KNIGHT:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 300;
-                            break;
-                        case pieceIndex.BISHOP:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 300;
-                            break;
-                        case pieceIndex.QUEEN:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 900;
-                            break;
-                        case pieceIndex.KING:
-                            if (isUnderAttack(isWhite, c, i)) counter -= 200;
-                            break;
+                        switch (j)
+                        {
+                            case pieceIndex.PAWN:
+                                counter -= 64;
+                                break;
+                            case pieceIndex.ROOK:
+                                counter -= 500;
+                                break;
+                            case pieceIndex.KNIGHT:
+                                counter -= 300;
+                                break;
+                            case pieceIndex.BISHOP:
+                                counter -= 300;
+                                break;
+                            case pieceIndex.QUEEN:
+                                counter -= 900;
+                                break;
+                            case pieceIndex.KING:
+                                counter -= 200;
+                                break;
+                        }
                     }
                 }
             }
             return counter/2;
-        }
-
-        public static bool isUnderAttack(bool isWhite, ChessBoard c, int index)
-        {
-            BitboardLayer[] enemyDict = c.getDict(!isWhite);
-            foreach (int i in enemyDict[pieceIndex.ALL_LOCATIONS].getTrueIndicies())
-            {
-                if (c.getValidMoves(isWhite, i).trueAtIndex(index)) return true;
-            }
-            return false;
         }
 
         public static int rateMaterial(bool isWhite, ChessBoard c)
@@ -129,18 +123,6 @@ namespace Chess
                 }
             }
             return counter;
-        }
-
-        public static ulong setAtIndex(ulong state, int index, bool isTrue)
-        {
-            if (isTrue) return state | (ulong)(1uL << (63 - index));
-            return state & ~((ulong)(1uL << 63 - index));
-        }
-
-        public static bool trueAtIndex(ulong t, int i)
-        { //easier to think of the other way
-            return (t & (ulong)(1uL << (63 - i))) > 0;
-            //invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
         }
     }
 }

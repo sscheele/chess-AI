@@ -17,6 +17,7 @@ namespace Chess
 		Dictionary<ulong[][], int> transTable; //stores transpositions - pre-calculated positions we've already searched for and already know the point value of
 		Dictionary<ulong[][], int[]> expectedMovesTable; //stores the sequence of moves we're hoping for/expecting
 
+        int numIterations = 0;
 		int searchDepth;
 		
 		public AI(ChessBoard c, bool isWhite, int searchDepth){
@@ -72,7 +73,23 @@ namespace Chess
                 s += retVal[i];
                 if (i % 8 == 7) s += "\n";
             }
+            var ml = c.getMoveList();
+            for (int i = 0; i < ml.Count; i++)
+            {
+                s += (i % 2 == 0 ? "White" : "Black") + ": [" + ml[i][0] + ", " + ml[i][1] + "]\n";
+            }
             return s;
+        }
+
+        public bool matchesMoveList(ChessBoard cb)
+        {
+            ChessBoard test = new ChessBoard(null, null);
+            var moveList = cb.getMoveList();
+            for (int i = 0; i < moveList.Count; i++)
+            {
+                test.movePiece(i % 2 == 0, moveList[i][0], moveList[i][1]);
+            }
+            return cb.equals(test);
         }
 
         public int[][] getAIMove(ChessBoard cb, bool isWhite, int depth)
@@ -88,25 +105,42 @@ namespace Chess
 
         public int[][] alphaBeta(ChessBoard cb, bool isWhite, int depth, int alpha, int beta, int[] move, int player)
         {
-            BitboardLayer[] possibleMoves = getPossibleMoves(cb, isWhite ^ player == 1);
+            numIterations++;
+            //GOAL: minimize beta (starts at infinity) and maximize alpha (starts at neg. infinity)
+            bool isWhiteMove = isWhite ^ (player == 1);
+            BitboardLayer[] possibleMoves = getPossibleMoves(cb, isWhiteMove);
 
             int numMoves = 0; 
             foreach(BitboardLayer i in possibleMoves) { 
                 numMoves += i.getNumOnes(); //need this for rating later
             }
-            if (depth == 0 || numMoves == 0) return new int[][] { move, new int[] { Rating.rating(isWhite, cb, numMoves, searchDepth) } };
+
+            if (depth == 0 || numMoves == 0)
+            {
+                int i = -1 * player * Rating.rating(isWhite, cb, numMoves, searchDepth);
+                Debug.Print("Found rating of: " + i);
+                return new int[][] { move, new int[] { i } };
+            }
             //TODO: sort for alphabeta
             player *= -1;
+            isWhiteMove = isWhite ^ (player == -1);
             for (int i = 0; i < 64; i++)
             {
-                foreach (int j in possibleMoves[i].getTrueIndicies()) { 
-                    cb.movePiece((player == -1) ^ isWhite, i, j, true);
-                    if (depth == searchDepth){
-                        Debug.Print("Top level node: searching move [" + i + ", " + j + "]");
+                foreach (int j in possibleMoves[i].getTrueIndicies()) {
+                    if (depth == searchDepth)
+                    {
+                        Debug.Print("Currently searching move: [" + i + ", " + j + "] (alpha = " + alpha + ", beta = " + beta + ")");
                     }
+                    cb.movePiece(isWhiteMove, i, j, true);
                     int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, new int[] { i, j }, player);
-                    cb.undoMove((player == -1) ^ isWhite);
-                    if (player == -1)
+                    cb.undoMove(isWhiteMove);
+                    /*
+                    if (!matchesMoveList(cb))
+                    {
+                        Debug.Print("Chess board does not match moves!");
+                    }
+                    */
+                    if (player == -1) //is min node
                     {
                         if (retVal[1][0] <= beta)
                         {
@@ -114,7 +148,7 @@ namespace Chess
                             if (depth == searchDepth) move = retVal[0];
                         }
                     }
-                    else
+                    else //is max node
                     {
                         if (retVal[1][0] > alpha)
                         {

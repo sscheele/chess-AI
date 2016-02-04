@@ -137,17 +137,22 @@ namespace Chess
 
         public void undoMove(bool isWhite)
         {
-            bool pawnIsOn11 = black[pieceIndex.PAWN].trueAtIndex(11);
+            //format of lastMove: { begin, end, captureLayer, promotionLayer, white_ep, black_ep }
             BitboardLayer[] dict = isWhite ? white : black;
             BitboardLayer[] enemyDict = isWhite ? black : white;
             int[] lastMove = moveList[moveList.Count - 1];
-            //special case for castling
-            for (int i = 0; i <= pieceIndex.KING; i++)
+
+            white_ep = lastMove[4];
+            black_ep = lastMove[5];
+
+            int i = 0;
+            for (i = 0; i <= pieceIndex.KING; i++)
             {
                 if (dict[i].trueAtIndex(lastMove[1]))
                 {
                     dict[i].setAtIndex(lastMove[0], true);
                     dict[i].setAtIndex(lastMove[1], false);
+                    break;
                 }
             }
 
@@ -165,12 +170,14 @@ namespace Chess
             } else {
                 //pieces are restored from captures
                 if (lastMove[2] >= 0) enemyDict[lastMove[2]].setAtIndex(lastMove[1], true);
+                if ((!isWhite ? white_ep : black_ep) == lastMove[1] && i == pieceIndex.PAWN)
+                {
+                    int dir = isWhite ? 1 : -1;
+                    enemyDict[pieceIndex.PAWN].setAtIndex(lastMove[1] + (8 * dir), true);
+                }
                 //pieces are removed from promotions
                 if (lastMove[3] >= 0) dict[lastMove[3]].setAtIndex(lastMove[1], false);
             }
-
-            white_ep = lastMove[4];
-            black_ep = lastMove[5];
 
             getAllLocations(true);
             getAllLocations(false);
@@ -180,7 +187,6 @@ namespace Chess
         }
 		
 		public void movePiece(bool isWhite, int begin, int end, bool isTest = false){
-            bool pawnIsOn11 = black[pieceIndex.PAWN].trueAtIndex(11);
             int captureLayer = -1;
             int promotionLayer = -1;
 			BitboardLayer[] dict = isWhite ? white : black;
@@ -229,7 +235,11 @@ namespace Chess
                         if (end == enemy_ep) enemyDict[pieceIndex.PAWN].setAtIndex(enemy_ep - dir * 8, false);
 
                         //promotion
-                        if (!isTest && ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite))) promotionLayer = promotePiece(end, isWhite);
+                        if ((end / 8 == 0 && isWhite) || (end / 8 == 7 && !isWhite))
+                        {
+                            if (isTest) promotionLayer = pieceIndex.QUEEN;
+                            else promotionLayer = promotePiece(end, isWhite);
+                        } 
                     } else {
                         if (isWhite) white_ep = -1;
                         else black_ep = -1;
@@ -268,7 +278,19 @@ namespace Chess
 			for (int i = 0; i <= pieceIndex.KING; i++){
 				dict[pieceIndex.ALL_LOCATIONS].setLayerData(dict[pieceIndex.ALL_LOCATIONS].getLayerData() | dict[i].getLayerData());
 			}
-		}		
+		}
+        
+        public bool equals(ChessBoard c)
+        {
+            BitboardLayer[] test_white = c.getDict(true);
+            BitboardLayer[] test_black = c.getDict(false);
+            for (int i = 0; i <= pieceIndex.KING; i++)
+            {
+                if (test_white[i].getLayerData() != white[i].getLayerData()) return false;
+                if (test_black[i].getLayerData() != black[i].getLayerData()) return false;
+            }
+            return true;
+        }		
 		
 		public BitboardLayer getValidMoves(bool isWhite, int index, BitboardLayer enemyAllPos = null, bool applyCheckLimits = true, bool fromAttackedSq = false){
             BitboardLayer[] w = white;
@@ -289,7 +311,7 @@ namespace Chess
 							int moveIndex = index + (direction * 8);
 							//move one in dir
 							if (moveIndex >= 0 && moveIndex <= 63 && 
-							    !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) &&
+							    !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) &&
                                 !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							
 							//captures
@@ -301,10 +323,10 @@ namespace Chess
                                 enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex + 1)) retVal.setAtIndex(moveIndex + 1, true);
 							
 							//move two in dir
-							if (index / 8 == pawnFile && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex))
+							if (index / 8 == pawnFile && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex))
                             {
 								moveIndex += direction * 8;
-								if (moveIndex >= 0 && moveIndex <= 63 && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
+								if (moveIndex >= 0 && moveIndex <= 63 && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(moveIndex) && !fromAttackedSq) retVal.setAtIndex(moveIndex, true);
 							}
 
                             //en passant captures
@@ -338,7 +360,7 @@ namespace Chess
 								int prevTemp = index;
 								for (int ext = 1; ext < 8; ext++){
 									int temp = index + (ext * diff);
-									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 64 || 
+									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 63 || 
 									    Math.Abs((prevTemp / 8) - (temp / 8)) != 1 || Math.Abs((prevTemp / 8) - (temp / 8)) != 1) break;
 									prevTemp = temp;
 									retVal.setAtIndex(temp, true);
@@ -365,7 +387,7 @@ namespace Chess
 								int prevTemp = index;
 								for (int ext = 1; ext < 8; ext++){
 									int temp = index + (ext * diff);
-									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 64 || 
+									if (checkCollision(index, temp, newAllPos, enemyAllPos, fromAttackedSq) || temp < 0 || temp > 63 || 
 									    Math.Abs((prevTemp / 8) - (temp / 8)) != 1 || Math.Abs((prevTemp / 8) - (temp / 8)) != 1) break;
 									prevTemp = temp;
 									retVal.setAtIndex(temp, true);

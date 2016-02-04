@@ -180,6 +180,7 @@ namespace Chess
                     overlays = new int[64];
                     c.genOverlay();
                     
+
                     paintTiles();
                     GC.Collect();
 

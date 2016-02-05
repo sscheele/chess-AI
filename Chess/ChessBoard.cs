@@ -5,8 +5,6 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 
 namespace Chess
 {
@@ -146,7 +144,7 @@ namespace Chess
             black_ep = lastMove[5];
 
             int i = 0;
-            for (i = 0; i <= pieceIndex.KING; i++)
+            for (i = 0; i < pieceIndex.KING; i++)
             {
                 if (dict[i].trueAtIndex(lastMove[1]))
                 {
@@ -158,8 +156,11 @@ namespace Chess
 
             if (dict[pieceIndex.KING].trueAtIndex(lastMove[1]) && Math.Abs(lastMove[0] - lastMove[1]) == 2)
             {
+                //move king back
+                dict[pieceIndex.KING].setAtIndex(lastMove[0], true);
+                dict[pieceIndex.KING].setAtIndex(lastMove[1], false);
                 //castling right, aka kingside
-                if (dict[1].getLayerData() > dict[0].getLayerData())
+                if (dict[1].getLayerData() < dict[0].getLayerData()) //less than b/c the way we think of the board has the bits flipped!
                 {
                     dict[pieceIndex.ROOK].setAtIndex(lastMove[0] + 1, false);
                     dict[pieceIndex.ROOK].setAtIndex(lastMove[0] + 3, true);
@@ -168,6 +169,12 @@ namespace Chess
                     dict[pieceIndex.ROOK].setAtIndex(lastMove[0] - 4, true);
                 }
             } else {
+                //take care of regular king moves
+                if (dict[pieceIndex.KING].trueAtIndex(lastMove[1]))
+                {
+                    dict[pieceIndex.KING].setAtIndex(lastMove[0], true);
+                    dict[pieceIndex.KING].setAtIndex(lastMove[1], false);
+                }
                 //pieces are restored from captures
                 if (lastMove[2] >= 0) enemyDict[lastMove[2]].setAtIndex(lastMove[1], true);
                 if ((!isWhite ? white_ep : black_ep) == lastMove[1] && i == pieceIndex.PAWN)
@@ -179,6 +186,9 @@ namespace Chess
                 if (lastMove[3] >= 0) dict[lastMove[3]].setAtIndex(lastMove[1], false);
             }
 
+            white[pieceIndex.FLAGS].setLayerData((ulong)lastMove[6]);
+            black[pieceIndex.FLAGS].setLayerData((ulong)lastMove[7]);
+
             getAllLocations(true);
             getAllLocations(false);
             white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
@@ -189,7 +199,9 @@ namespace Chess
 		public void movePiece(bool isWhite, int begin, int end, bool isTest = false){
             int captureLayer = -1;
             int promotionLayer = -1;
-			BitboardLayer[] dict = isWhite ? white : black;
+            int wFlags = (int)white[pieceIndex.FLAGS].getLayerData();
+            int bFlags = (int)black[pieceIndex.FLAGS].getLayerData();
+            BitboardLayer[] dict = isWhite ? white : black;
 			BitboardLayer[] enemyDict = isWhite ? black : white;
 			for (int i = 0; i <= pieceIndex.KING; i++){
 				if (dict[i].trueAtIndex(begin)){
@@ -246,7 +258,7 @@ namespace Chess
                     }
                 }
             }
-            moveList.Add(new int[] { begin, end, captureLayer, promotionLayer, white_ep, black_ep });
+            moveList.Add(new int[] { begin, end, captureLayer, promotionLayer, white_ep, black_ep, wFlags, bFlags });
             moveNum++;
             getAllLocations(isWhite);
             if (captureLayer != -1) getAllLocations(!isWhite);
@@ -396,23 +408,25 @@ namespace Chess
 							break;
 						case pieceIndex.KING:
 							isKingMove = true;
-                            int currRow = index / 8;
+                            //int currRow = index / 8;
+                            int currCol = index % 8;
 							for (int a = -1; a <= 1; a++){
 								for (int c = -1; c <= 1; c++){
 									int newIndex = index + (8 * a) + c;
-									if (newIndex >= 0 && newIndex <= 63 && !newAllPos.trueAtIndex(newIndex)) retVal.setAtIndex(newIndex, true);
+									if (newIndex >= 0 && newIndex <= 63 && !newAllPos.trueAtIndex(newIndex) && newIndex % 8 - currCol >=-1 && newIndex % 8 - currCol <= 1) retVal.setAtIndex(newIndex, true);
 								}
 							}
                             if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.KING_CASTLE) > 0 && !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index)) //king can castle
                             {
-                                if((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.LEFT_ROOK_CASTLE) > 0 &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2))
+                                if((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.RIGHT_ROOK_CASTLE) > 0 &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 1) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 2) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2))
                                     retVal.setAtIndex(index + 2, true); //king can castle right
 
-                                if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.RIGHT_ROOK_CASTLE) > 0 && 
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2)) retVal.setAtIndex(index + 2, true); //king can castle right
+                                if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.LEFT_ROOK_CASTLE) > 0 && 
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 3) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 3)) retVal.setAtIndex(index - 2, true); //king can castle left
                             }
 							break;
 					}

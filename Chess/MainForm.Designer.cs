@@ -163,6 +163,8 @@ namespace Chess
             this.pictureBox63 = new System.Windows.Forms.PictureBox();
             this.pictureBox64 = new System.Windows.Forms.PictureBox();
             this.undoButton = new System.Windows.Forms.Button();
+            this.textDisplay = new System.Windows.Forms.TextBox();
+            this.AIProgBar = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
@@ -808,7 +810,7 @@ namespace Chess
             // 
             // undoButton
             // 
-            this.undoButton.Location = new System.Drawing.Point(590, 227);
+            this.undoButton.Location = new System.Drawing.Point(545, 200);
             this.undoButton.Name = "undoButton";
             this.undoButton.Size = new System.Drawing.Size(119, 23);
             this.undoButton.TabIndex = 64;
@@ -816,11 +818,30 @@ namespace Chess
             this.undoButton.UseVisualStyleBackColor = true;
             this.undoButton.Click += new System.EventHandler(this.undoButton_Click);
             // 
+            // textDisplay
+            // 
+            this.textDisplay.Location = new System.Drawing.Point(24, 458);
+            this.textDisplay.Multiline = true;
+            this.textDisplay.Name = "textDisplay";
+            this.textDisplay.ReadOnly = true;
+            this.textDisplay.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.textDisplay.Size = new System.Drawing.Size(640, 20);
+            this.textDisplay.TabIndex = 65;
+            // 
+            // AIProgBar
+            // 
+            this.AIProgBar.Location = new System.Drawing.Point(407, 376);
+            this.AIProgBar.Name = "AIProgBar";
+            this.AIProgBar.Size = new System.Drawing.Size(302, 23);
+            this.AIProgBar.TabIndex = 66;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(721, 578);
+            this.Controls.Add(this.AIProgBar);
+            this.Controls.Add(this.textDisplay);
             this.Controls.Add(this.undoButton);
             this.Controls.Add(this.pictureBox64);
             this.Controls.Add(this.pictureBox63);
@@ -954,9 +975,12 @@ namespace Chess
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox63)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox64)).EndInit();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
 		}
 
         private System.Windows.Forms.Button undoButton;
+        private System.Windows.Forms.TextBox textDisplay;
+        private System.Windows.Forms.ProgressBar AIProgBar;
     }
 }

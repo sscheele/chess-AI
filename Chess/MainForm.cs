@@ -5,10 +5,8 @@
  */
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Collections;
 
 namespace Chess
 {
@@ -18,14 +16,14 @@ namespace Chess
 	public partial class MainForm : Form
 	{
         AI[] gameAIs = new AI[2];
-        static int defaultSearchDepth = 4;
+        static int defaultSearchDepth = 3;
 
         static string imagePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory().ToString()).ToString(), "Images");
 		PictureBox[] allTiles;
         bool[] baseTiles = new bool[64];
 		int[] overlays = new int[64];
 		BitboardLayer validMoveOverlays = new BitboardLayer(); //layer containing info as to whether a square should be marked as valid
-		int tileSize;
+        int tileXSize, tileYSize;
 		ChessBoardDisplay c;
 		bool isWhiteMove;
 		int selectedPiece = -1;
@@ -60,8 +58,8 @@ namespace Chess
             pieceOverlays[pieceOverlays.Length - 1] = Image.FromFile(Path.Combine(imagePath, "validMove.png"));
             c = new ChessBoardDisplay(this);
 
-            if ((gameMode & 1) > 0) gameAIs[1] = new AI(c.getBoard(), true, defaultSearchDepth);
-            if ((gameMode & 2) > 0) gameAIs[0] = new AI(c.getBoard(), false, defaultSearchDepth);
+            if ((gameMode & 1) > 0) gameAIs[1] = new AI(c.getBoard(), true, defaultSearchDepth, this);
+            if ((gameMode & 2) > 0) gameAIs[0] = new AI(c.getBoard(), false, defaultSearchDepth, this);
             isWhiteMove = true;
             paintTiles();
         }
@@ -72,8 +70,8 @@ namespace Chess
 			paintTiles();
 		}
 		
-		public static Image resizeImage(Image imgToResize, int size){
-       		return new Bitmap(imgToResize, size, size);
+		public static Image resizeImage(Image imgToResize, int xSize, int ySize){
+       		return new Bitmap(imgToResize, xSize, ySize);
     	}
 		
 		void paintTiles(){
@@ -81,11 +79,11 @@ namespace Chess
 			c.genOverlay();
             for (int i = 0; i < pieceOverlays.Length; i++)
             {
-                pieceOverlays[i] = resizeImage(pieceOverlays[i], tileSize);
+                pieceOverlays[i] = resizeImage(pieceOverlays[i], tileXSize, tileYSize);
             }
             for (int i = 0; i < backgrounds.Length; i++)
             {
-                backgrounds[i] = resizeImage(backgrounds[i], tileSize);
+                backgrounds[i] = resizeImage(backgrounds[i], tileXSize, tileYSize);
             }
             for (int i = 0; i < baseTiles.Length; i++) {
                 Image imgOverlay = null;
@@ -127,17 +125,57 @@ namespace Chess
                 }
             }
 		}
+
+        public void addText(String s)
+        {
+            textDisplay.AppendText(s);
+        }
 		
 		void resizeTiles(){
-			int min = this.Height > this.Width ? this.Width : this.Height;
-			tileSize = (int)(min / 8.2);
+            //do actual resizing and positioning of tiles
+            const double xScreenRatio = .7;
+            const double yScreenRatio = .8;
+
+            tileXSize = (int)((this.Width * xScreenRatio) / 8);
+            tileYSize = (int)((this.Height * yScreenRatio) / 8);
+			int min = yScreenRatio * this.Height > xScreenRatio * this.Width ? (int)(xScreenRatio * this.Width) : (int)(yScreenRatio * this.Height);
 			for (int i = 0; i < allTiles.Length; i++){
-				allTiles[i].Height = tileSize;
-				allTiles[i].Width = tileSize;
-				allTiles[i].Location = new Point(((this.Width - (8 * tileSize)) / 2) + tileSize * (int)(i % 8), tileSize * (int)(i / 8));
-			}
-		}
+                allTiles[i].Height = tileYSize;
+				allTiles[i].Width = tileXSize;
+                
+                allTiles[i].Location = new Point(tileXSize * (i % 8), tileYSize * (i/8));
+            }
+
+            //do resizing and positioning of text display
+            textDisplay.Height = this.Height - (8 * tileYSize);
+            textDisplay.Width = (int)(.97 * this.Width);
+            textDisplay.Location = new Point(0, 8 * tileYSize);
+
+            //do resizing and positioning of buttons
+            int controlSpaceHeight = this.Height - textDisplay.Height;
+            const double buttonHeightRatio = .2;
+
+            undoButton.Height = (int)(controlSpaceHeight * buttonHeightRatio); // 1/5
+            undoButton.Width = this.Width - (8 * tileXSize);
+            undoButton.Location = new Point(8 * tileXSize, 0);
+
+
+            //do resizing and positioning of progress bar
+            AIProgBar.Height = (int)(controlSpaceHeight / 16);
+            AIProgBar.Width = this.Width - (8 * tileXSize);
+            AIProgBar.Location = new Point(8 * tileXSize, (8 * tileYSize) - AIProgBar.Height);
+        }
+
+        public void stepProgBarBy(int x)
+        {
+            AIProgBar.Increment(x);
+        }
 		
+        public void resetProgBar()
+        {
+            AIProgBar.Value = 0;
+        }
+
 		public void setOverlay(int index, int pieceNum){
 			overlays[index] = pieceNum;
 		}
@@ -150,7 +188,7 @@ namespace Chess
 			Point mousePosition = pictureBox1.PointToClient(Cursor.Position);
 			int mouseX = mousePosition.X;
 			int mouseY = mousePosition.Y;
-			int indexClicked = (mouseX / tileSize) + (8 * (mouseY / tileSize));
+			int indexClicked = (mouseX / tileXSize) + (8 * (mouseY / tileYSize));
 			BitboardLayer[] dict = cb.getDict(isWhiteMove);
             if ((gameMode & isPlayerIndex) == 0) //is not an AI move
             {

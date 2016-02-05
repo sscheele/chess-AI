@@ -1,9 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
+﻿
 namespace Chess
 {
     class Rating
@@ -92,7 +87,7 @@ namespace Chess
                     }
                 }
             }
-            return counter/2;
+            return (int)(counter * .5);
         }
 
         public static int rateMaterial(bool isWhite, ChessBoard c)
@@ -109,7 +104,7 @@ namespace Chess
             }
             if (numBishops >= 2) counter += 300 * numBishops;
             else counter += 250 * numBishops;
-            return counter;
+            return (int)(counter * 1.75);
         }
 
         public static int rateMoveability(bool isWhite, ChessBoard c, int possibleMoves, int depth, int material)

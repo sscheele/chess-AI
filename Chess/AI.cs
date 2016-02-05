@@ -19,18 +19,15 @@ namespace Chess
 
         int numIterations = 0;
 		int searchDepth;
-		
-		public AI(ChessBoard c, bool isWhite, int searchDepth){
-			transTable = new Dictionary<ulong[][], int>();
-			expectedMovesTable = new Dictionary<ulong[][], int[]>();
-			this.searchDepth = searchDepth;
-		}
-		
-		public AI(ChessBoard c, bool isWhite, int searchDepth, AI parentAI){
-			transTable = new Dictionary<ulong[][], int>();
-			expectedMovesTable = new Dictionary<ulong[][], int[]>();
 
+        MainForm gui;
+		
+		public AI(ChessBoard c, bool isWhite, int searchDepth, MainForm f){
+			transTable = new Dictionary<ulong[][], int>();
+			expectedMovesTable = new Dictionary<ulong[][], int[]>();
 			this.searchDepth = searchDepth;
+
+            gui = f;
 		}
 		
 
@@ -40,11 +37,11 @@ namespace Chess
             BitboardLayer[] dict = c.getDict(isWhite);
             BitboardLayer[] enemyDict = c.getDict(!isWhite);
 
-            for (int i = 0; i < 64; i++)
-            {
-                if (dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(i)){
-                    BitboardLayer pieceMoves = c.getValidMoves(isWhite, i);
-                    foreach (int j in pieceMoves.getTrueIndicies()) retVal.Add(new int[] { i, j });
+            foreach (int i in dict[pieceIndex.ALL_LOCATIONS].getTrueIndicies()) { 
+                BitboardLayer pieceMoves = c.getValidMoves(isWhite, i);
+                foreach (int j in pieceMoves.getTrueIndicies())
+                {
+                    retVal.Add(new int[] { i, j });
                 }
             }
             return retVal;
@@ -91,11 +88,10 @@ namespace Chess
 
         public int[][] getAIMove(ChessBoard cb, bool isWhite, int depth)
         {
+            gui.resetProgBar();
             searchDepth = depth;
-            //ChessBoard tBoard = new ChessBoard(cb);
-            //int[][] retVal = alphaBeta(tBoard, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], -1);
             int[][] retVal = alphaBeta(cb, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], -1);
-            Debug.Print("Alphabeta is done.");
+            gui.addText("***\nAlphabeta is done.\n***");
             return retVal;
         }
 
@@ -141,8 +137,8 @@ namespace Chess
             numIterations++;
             //GOAL: minimize beta (starts at infinity) and maximize alpha (starts at neg. infinity)
             bool isWhiteMove = isWhite ^ (player == 1);
-            List<int[]> possibleMoves = depth > 1 ? sortAlphaBeta(cb, isWhiteMove, getPossibleMoves(cb, isWhiteMove)) : getPossibleMoves(cb, isWhiteMove);
 
+            List<int[]> possibleMoves = depth > 1 ? sortAlphaBeta(cb, isWhiteMove, getPossibleMoves(cb, isWhiteMove)) : getPossibleMoves(cb, isWhiteMove);
             int numMoves = possibleMoves.Count;
 
             if (depth == 0 || numMoves == 0)
@@ -154,42 +150,43 @@ namespace Chess
             }
             //TODO: sort for alphabeta
             player *= -1;
-            foreach (int[] currMove in possibleMoves) { 
-                    if (depth == searchDepth)
+            foreach (int[] currMove in possibleMoves) {   
+                if (depth == searchDepth)
+                {
+                    gui.stepProgBarBy((int)(100 / possibleMoves.Count));
+                    gui.addText("Currently searching move: [" + currMove[0] + ", " + currMove[1] + "] (alpha = " + alpha + ", beta = " + beta + ")\n");
+                }
+                cb.movePiece(isWhiteMove, currMove[0], currMove[1], true);
+                int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, currMove, player);
+                cb.undoMove(isWhiteMove);
+                /*
+                if (!matchesMoveList(cb))
+                {
+                    Debug.Print("Chess board does not match moves!");
+                }
+                */
+                if (player == -1) //is min node
+                {
+                    if (retVal[1][0] <= beta)
                     {
-                        Debug.Print("Currently searching move: [" + currMove[0] + ", " + currMove[1] + "] (alpha = " + alpha + ", beta = " + beta + ")");
-                    }
-                    cb.movePiece(isWhiteMove, currMove[0], currMove[1], true);
-                    int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, currMove, player);
-                    cb.undoMove(isWhiteMove);
-                    /*
-                    if (!matchesMoveList(cb))
-                    {
-                        Debug.Print("Chess board does not match moves!");
-                    }
-                    */
-                    if (player == -1) //is min node
-                    {
-                        if (retVal[1][0] <= beta)
-                        {
-                            beta = retVal[1][0];
-                            if (depth == searchDepth) move = retVal[0];
-                        }
-                    }
-                    else //is max node
-                    {
-                        if (retVal[1][0] > alpha)
-                        {
-                            alpha = retVal[1][0];
-                            if (depth == searchDepth) move = retVal[0];
-                        }
-                    }
-                    if (alpha >= beta)
-                    {
-                        if (player == -1) return new int[][] { move, new int[] { beta } };
-                        else return new int[][] { move, new int[] { alpha } };
+                        beta = retVal[1][0];
+                        if (depth == searchDepth) move = retVal[0];
                     }
                 }
+                else //is max node
+                {
+                    if (retVal[1][0] > alpha)
+                    {
+                        alpha = retVal[1][0];
+                        if (depth == searchDepth) move = retVal[0];
+                    }
+                }
+                if (alpha >= beta)
+                {
+                    if (player == -1) return new int[][] { move, new int[] { beta } };
+                    else return new int[][] { move, new int[] { alpha } };
+                }
+            }
             if (player == -1) return new int[][] { move, new int[] { beta } };
             else return new int[][] { move, new int[] { alpha } };
         }

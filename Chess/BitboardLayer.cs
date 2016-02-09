@@ -8,12 +8,12 @@ namespace Chess
         //sacrifice negligible memory for more significant gains in time while maintaining
         //many of the advantages of using the bitboard
         ulong layerData;
-        List<int> trueIndicies;
+        HashSet<int> trueIndicies;
 
         public BitboardLayer()
         {
             layerData = 0uL;
-            trueIndicies = new List<int>();
+            trueIndicies = new HashSet<int>();
         }
 
         public BitboardLayer(ulong layerData)
@@ -25,13 +25,13 @@ namespace Chess
         public BitboardLayer(BitboardLayer b)
         {
             layerData = b.getLayerData();
-            trueIndicies = new List<int>();
+            trueIndicies = new HashSet<int>();
             foreach (int i in b.getTrueIndicies()) { trueIndicies.Add(i); }
         }
 
         void initializeMetadata()
         {
-            trueIndicies = new List<int>();
+            trueIndicies = new HashSet<int>();
             for (int i = 0; i < 64; i++)
             {
                 if (trueAtIndex(i)) trueIndicies.Add(i);
@@ -43,12 +43,12 @@ namespace Chess
             if (isTrue)
             {
                 layerData |= (ulong)(1uL << (63 - index));
-                if (!trueIndicies.Contains(index)) trueIndicies.Add(index);
+                trueIndicies.Add(index);
             }
             else
             {
                 layerData &= ~((ulong)(1uL << 63 - index));
-                if (trueIndicies.Contains(index)) trueIndicies.Remove(index);
+                /*if (trueIndicies.Contains(index))*/ trueIndicies.Remove(index);
             }
             return layerData;
         }
@@ -61,7 +61,11 @@ namespace Chess
 
         public ulong getLayerData() { return layerData; }
 
-        public int[] getTrueIndicies() { return trueIndicies.ToArray(); }
+        public int[] getTrueIndicies() {
+            int[] retVal = new int[trueIndicies.Count];
+            trueIndicies.CopyTo(retVal);
+            return retVal;
+        }
 
         public int getNumOnes() { return trueIndicies.Count; }
 

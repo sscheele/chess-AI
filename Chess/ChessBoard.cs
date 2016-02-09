@@ -419,14 +419,13 @@ namespace Chess
                             if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.KING_CASTLE) > 0 && !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index)) //king can castle
                             {
                                 if((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.RIGHT_ROOK_CASTLE) > 0 &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 1) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 2) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2))
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 1) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index + 2) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index + 2))
                                     retVal.setAtIndex(index + 2, true); //king can castle right
 
                                 if ((dict[pieceIndex.FLAGS].getLayerData() & flagIndex.LEFT_ROOK_CASTLE) > 0 && 
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2) &&
-                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 3) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 3)) retVal.setAtIndex(index - 2, true); //king can castle left
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 1) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 1) &&
+                                    !enemyDict[pieceIndex.ATTACKED_SQUARES].trueAtIndex(index - 2) && !dict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2) && !enemyDict[pieceIndex.ALL_LOCATIONS].trueAtIndex(index - 2)) retVal.setAtIndex(index - 2, true); //king can castle left
                             }
 							break;
 					}

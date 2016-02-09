@@ -41,11 +41,5 @@ namespace Chess
 
         public ChessBoard getBoard() { return c; }
 
-        public static bool trueAtIndex(ulong t, int i)
-        { //easier to think of the other way
-            return (t & (ulong)(1uL << (63 - i))) > 0;
-            //invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
-        }
-
     }
 }

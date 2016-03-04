@@ -53,10 +53,8 @@ namespace Chess
             return layerData;
         }
 
-        public bool trueAtIndex(int i) { //easier to think of the other way
-            //I would do this with trueIndicies, but I think this is actually slightly faster (consumes only a few clock cycles compared to a relatively inefficient O(n) search)
-            return (layerData & (ulong)(1uL << (63 - i))) > 0;
-                //invert normal digit order (ie, index of 0 gives LBS of 63, which is the leftmost bit
+        public bool trueAtIndex(int i) { //less clear, but needed for initializeMetadata
+            return ((1uL << (63 - i)) & layerData) > 0;
         }
 
         public ulong getLayerData() { return layerData; }

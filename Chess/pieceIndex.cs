@@ -15,9 +15,7 @@ namespace Chess
 		public const int QUEEN = 4;
 		public const int KING = 5;
 		public const int ALL_LOCATIONS = 6;
-		public const int ATTACKED_SQUARES = 7;
-		public const int VALID_MOVES = 8;
-		public const int FLAGS = 9;
+		public const int FLAGS = 7;
 	}
 
     public static class flagIndex

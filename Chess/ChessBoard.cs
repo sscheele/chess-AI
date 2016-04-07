@@ -18,6 +18,7 @@ namespace Chess
 		BitboardLayer[] black = new BitboardLayer[10];
         int black_ep = -1;
         int white_ep = -1;
+        AttackedSquaresGetter ASG;
 		
 		public ChessBoard(BitboardLayer[] white, BitboardLayer[] black){
             if (white == null || black == null)
@@ -54,16 +55,12 @@ namespace Chess
 
                 getAllLocations(true);
                 getAllLocations(false);
-
-                this.white[pieceIndex.ATTACKED_SQUARES] = new BitboardLayer();
-                this.black[pieceIndex.ATTACKED_SQUARES] = new BitboardLayer();
-                this.white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
-                this.black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
             } else
             {
                 this.white = white;
                 this.black = black;
             }
+            ASG = new AttackedSquaresGetter(this);
 		}
 		
 		public ChessBoard(ChessBoard c){
@@ -76,7 +73,10 @@ namespace Chess
             black_ep = c.getEP(false);
             moveList = new List<int[]>(c.getMoveList());
             moveNum = c.getMoveNum();
+            ASG = c.getASG();
 		}
+
+        public AttackedSquaresGetter getASG() { return ASG; }
 
         public List<int[]> getMoveList(){ return moveList; }
 
@@ -120,22 +120,19 @@ namespace Chess
 
             getAllLocations(true);
             getAllLocations(false);
-            this.white[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(true);
-            this.black[pieceIndex.ATTACKED_SQUARES] = getAttackedSquares(false);
 
             moveList = new List<int[]>();
             moveNum = 0;
 
             white_ep = -1;
             black_ep = -1;
+
+            ASG = new AttackedSquaresGetter(this);
         }
 
         public int[] getLastMove()
         {
-            if (moveList.Count > 0)
-            {
-                return moveList[moveList.Count - 1];
-            }
+            if (moveList.Count > 0) return moveList[moveList.Count - 1];
             return null;
         }
 
@@ -150,7 +147,7 @@ namespace Chess
             black_ep = lastMove[5];
 
             int i = 0;
-            for (i = 0; i < pieceIndex.KING; i++)
+            for (i = 0; i <= pieceIndex.KING; i++)
             {
                 if (dict[i].trueAtIndex(lastMove[1]))
                 {
@@ -199,8 +196,14 @@ namespace Chess
 
             getAllLocations(true);
             getAllLocations(false);
-            white[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(true).getLayerData());
-            black[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(false).getLayerData());
+            /*
+            if (black[pieceIndex.KING].getLayerData() == 0uL)
+            {
+                i++;
+                i--;
+            }
+            */
+            ASG.updatePosition(isWhite, new int[] { moveList[moveList.Count - 1][1], moveList[moveList.Count - 1][0] }); //send reversed move so it can know what's going on
             moveList.RemoveAt(moveList.Count - 1);
         }
 		
@@ -264,14 +267,14 @@ namespace Chess
                         if (isWhite) white_ep = -1;
                         else black_ep = -1;
                     }
+                    break;
                 }
             }
             moveList.Add(new int[] { begin, end, captureLayer, promotionLayer, white_ep, black_ep, wFlags, bFlags });
             moveNum++;
             getAllLocations(isWhite);
             if (captureLayer != -1) getAllLocations(!isWhite);
-            dict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(isWhite).getLayerData());
-            enemyDict[pieceIndex.ATTACKED_SQUARES].setLayerData(getAttackedSquares(!isWhite).getLayerData());
+            ASG.updatePosition(isWhite, new int[] { begin, end });
         }
 
         int promotePiece(int index, bool isWhite)
@@ -304,7 +307,7 @@ namespace Chess
         {
             BitboardLayer[] test_white = c.getDict(true);
             BitboardLayer[] test_black = c.getDict(false);
-            for (int i = 0; i <= pieceIndex.KING; i++)
+            for (int i = 0; i <= pieceIndex.FLAGS; i++)
             {
                 if (test_white[i].getLayerData() != white[i].getLayerData()) return false;
                 if (test_black[i].getLayerData() != black[i].getLayerData()) return false;
@@ -312,22 +315,24 @@ namespace Chess
             return true;
         }		
 
+        public BitboardLayer getAllAttackedSq(bool isWhite)
+        {
+            return ASG.getAllAttackedSquares(isWhite);
+        }
+
+        public BitboardLayer getValidMoves(bool isWhite, int index)
+        {
+            return ASG.getValidMoves(isWhite, index);
+        }
+
         public bool isInCheck(bool isWhite)
         {
             BitboardLayer[] dict = isWhite ? white : black;
-            BitboardLayer[] enemyDict = isWhite ? black : white;
-            if ((enemyDict[pieceIndex.ATTACKED_SQUARES].getLayerData() & dict[pieceIndex.KING].getLayerData()) > 0) return true;
-            return false;
+            return ((getAllAttackedSq(!isWhite).getLayerData() & dict[pieceIndex.KING].getLayerData()) > 0);
         }
 		
 		public bool checkForMate(bool isWhite){ //checks to see if isWhite has checkmate
-            BitboardLayer[] dict = isWhite ? white : black;
-			BitboardLayer[] enemyDict = isWhite ? black : white;
-			foreach (int i in enemyDict[pieceIndex.ALL_LOCATIONS].getTrueIndicies())
-            {
-                if (getValidMoves(!isWhite, i).getLayerData() != 0uL) return false;
-			}
-			return (dict[pieceIndex.KING].getLayerData() & enemyDict[pieceIndex.ATTACKED_SQUARES].getLayerData()) > 0;
+            return isInCheck(isWhite) && ASG.getAllValidMoves(isWhite).getLayerData() == 0;
 		}
 }
 }

@@ -1,0 +1,9 @@
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\bin\Release\Chess.exe.config
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\bin\Release\Chess.exe
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.MainForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.promotionForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.Properties.Resources.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.SelectionForm.resources
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.csproj.GenerateResource.Cache
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.exe
+C:\Users\samsc\Documents\GitHub\chess-AI\Chess\obj\Release\Chess.csprojResolveAssemblyReference.cache

@@ -16,7 +16,7 @@ namespace Chess
 	public partial class MainForm : Form
 	{
         AI[] gameAIs = new AI[2];
-        static int defaultSearchDepth = 3;
+        static int defaultSearchDepth = 5;
 
         static string imagePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory().ToString()).ToString(), "Images");
 		PictureBox[] allTiles;

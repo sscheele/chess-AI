@@ -55,7 +55,7 @@ namespace Chess
         public static int rateAttack(bool isWhite, ChessBoard c)
         {
             BitboardLayer[] dict = c.getDict(isWhite);
-            BitboardLayer attackedSqs = dict[pieceIndex.ATTACKED_SQUARES];
+            BitboardLayer attackedSqs = c.getAllAttackedSq(isWhite);
             int counter = 0;
             for (int j = 0; j <= pieceIndex.KING; j++) //don't include king
             {

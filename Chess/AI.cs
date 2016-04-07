@@ -21,6 +21,8 @@ namespace Chess
 		int searchDepth;
 
         MainForm gui;
+
+        int[] testedMoves = new int[] { 52, 36, 6, 21, 59, 52 };
 		
 		public AI(ChessBoard c, bool isWhite, int searchDepth, MainForm f){
 			transTable = new Dictionary<ulong[][], int>();
@@ -51,8 +53,8 @@ namespace Chess
         {
             //for debugging purposes
             //capital letters are white, n's are knights
-            char[] whiteLetters = new char[] { Convert.ToChar("P"), Convert.ToChar("R"), Convert.ToChar("N"), Convert.ToChar("B"), Convert.ToChar("Q"), Convert.ToChar("K") };
-            char[] blackLetters = new char[] { Convert.ToChar("p"), Convert.ToChar("r"), Convert.ToChar("n"), Convert.ToChar("b"), Convert.ToChar("q"), Convert.ToChar("k") };
+            char[] whiteLetters = new char[] { 'P', 'R', 'N', 'B', 'Q', 'K' };
+            char[] blackLetters = new char[] {  'p', 'r', 'n', 'b', 'q', 'k' };
 
             char[] retVal = new char[64];
             for (int i = 0; i < 64; i++) retVal[i] = Convert.ToChar("+");
@@ -75,22 +77,35 @@ namespace Chess
             return s;
         }
 
+        public int[] getMoveList(ChessBoard cb)
+        {
+            List<int> retVal = new List<int>();
+            var moveList = cb.getMoveList();
+            foreach (int[] i in moveList)
+            {
+                retVal.Add(i[0]);
+                retVal.Add(i[1]);
+            }
+            return retVal.ToArray();
+        }
+
         public bool matchesMoveList(ChessBoard cb)
         {
             ChessBoard test = new ChessBoard(null, null);
             var moveList = cb.getMoveList();
             for (int i = 0; i < moveList.Count; i++)
             {
-                test.movePiece(i % 2 == 0, moveList[i][0], moveList[i][1]);
+                test.movePiece(i % 2 == 0, moveList[i][0], moveList[i][1], true);
             }
-            return cb.equals(test);
+            //return cb.equals(test);
+            return displayBoard(cb).Equals(displayBoard(test));
         }
 
         public int[][] getAIMove(ChessBoard cb, bool isWhite, int depth)
         {
             gui.resetProgBar();
             searchDepth = depth;
-            int[][] retVal = alphaBeta(cb, isWhite, depth, Int32.MinValue, Int32.MaxValue, new int[0], false);
+            int[][] retVal = alphaBeta(cb, isWhite, depth, int.MinValue, int.MaxValue, new int[0], false);
             gui.addText("***\nAlphabeta is done.\n***");
             gui.stepProgBarBy(100);
             return retVal;
@@ -102,10 +117,19 @@ namespace Chess
             List<int> valueSet = new List<int>();
             for (int i = 0; i < possibleMoves.Count; i++)
             {
+                numIterations++;
+                if (numIterations == 33000)
+                {
+                    gui.addText("Found bug");
+                }
                 int[] currMove = possibleMoves[i];
                 cb.movePiece(isWhite, currMove[0], currMove[1], true);
                 valueSet.Add(Rating.rating(isWhite, cb, possibleMoves.Count, searchDepth));
                 cb.undoMove(isWhite);
+                if (!matchesMoveList(cb))
+                {
+                    gui.addText("More errors!");
+                }
             }
             while (valueSet.Count > 0)
             {
@@ -131,14 +155,28 @@ namespace Chess
             }
             return retVal;
         }
+
+        bool equalsTestedMoves(int[] i) {
+            if (i.Length != testedMoves.Length) return false;
+            for (int j = 0; j < testedMoves.Length; j++)
+            {
+                if (i[j] != testedMoves[j]) return false;
+            }
+            return true;
+        }
+
         
 
         public int[][] alphaBeta(ChessBoard cb, bool isWhite, int depth, int alpha, int beta, int[] move, bool isMyMove)
         {
             numIterations++;
+            if (numIterations == 32974)
+            {
+                gui.addText("Found error");
+            }
             //GOAL: minimize beta (starts at infinity) and maximize alpha (starts at neg. infinity)
             bool isWhiteMove = isWhite ^ isMyMove;
-
+            //problem is in sortalphabeta
             List<int[]> possibleMoves = depth > 1 ? sortAlphaBeta(cb, isWhiteMove, getPossibleMoves(cb, isWhiteMove)) : getPossibleMoves(cb, isWhiteMove);
             int numMoves = possibleMoves.Count;
 
@@ -147,14 +185,23 @@ namespace Chess
                 return new int[][] { move, new int[] { i } };
             }
             isMyMove = !isMyMove;
-            foreach (int[] currMove in possibleMoves) {   
+            foreach (int[] currMove in possibleMoves) {
+                numIterations++;
                 if (depth == searchDepth) {
                     gui.stepProgBarBy((int)(100 / possibleMoves.Count));
                     gui.addText("Currently searching move: [" + currMove[0] + ", " + currMove[1] + "] (alpha = " + alpha + ", beta = " + beta + ")\n");
                 }
+                if (numIterations == 5053)
+                {
+                    gui.addText("Found error!");
+                }
                 cb.movePiece(isWhiteMove, currMove[0], currMove[1], true);
                 int[][] retVal = alphaBeta(cb, isWhite, depth - 1, alpha, beta, currMove, isMyMove);
                 cb.undoMove(isWhiteMove);
+                if (!matchesMoveList(cb))
+                {
+                    gui.addText("Found error!");
+                }
                 if (!isMyMove) { //is min node
                     if (retVal[1][0] <= beta) {
                         beta = retVal[1][0];
